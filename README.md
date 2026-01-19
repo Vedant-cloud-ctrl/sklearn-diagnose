@@ -428,4 +428,4 @@ If you use sklearn-diagnose in your research, please cite:
 
 ---
 
-Please give my GitHub repo a ⭐ if this was helpful. Thank you!
+Please give my GitHub repo a ⭐ if this was helpful. Thank you! 🙏
