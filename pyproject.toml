@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sklearn-diagnose"
-version = "0.1.1"
+version = "0.1.2"
 description = "An intelligent diagnosis layer for scikit-learn: evidence-based model failure detection with LLM-powered summaries"
 readme = "README.md"
 license = {text = "MIT"}
@@ -93,5 +93,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
+python_files = ["test_*.py", "unit_test_*.py"]
 addopts = "-v --tb=short"

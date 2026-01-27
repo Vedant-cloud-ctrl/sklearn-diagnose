@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chatbot dependencies (FastAPI, Uvicorn, python-multipart) moved from optional to required
 - Test file renamed from `test_diagnose.py` to `unit_test_diagnose.py`
 
-## [0.1.1] - 2025-01-28
+## [0.1.2] - 2025-01-28
 
 ### Added
 
