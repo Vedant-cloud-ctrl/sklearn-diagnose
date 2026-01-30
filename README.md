@@ -147,6 +147,8 @@ report = diagnose(
 
 ### Interactive Chatbot
 
+<img width="1915" height="965" alt="Screenshot 2026-01-31 091551" src="https://github.com/user-attachments/assets/6b557cec-0d6e-4bda-b2b6-f876b0c6f98d" />
+
 Launch an interactive web-based chatbot to explore your diagnosis results through natural conversation with an LLM.
 
 #### Features
@@ -157,14 +159,6 @@ Launch an interactive web-based chatbot to explore your diagnosis results throug
 - **Conversation History**: Maintains context throughout your session
 - **Markdown Rendering**: Formatted responses with syntax highlighting
 - **Responsive UI**: Modern React interface with Tailwind CSS
-
-#### Installation
-
-Simply install sklearn-diagnose:
-
-```bash
-pip install sklearn-diagnose
-```
 
 The chatbot dependencies (FastAPI, Uvicorn, python-multipart) are included by default. **The React frontend is bundled** - no Node.js or npm required!
 
