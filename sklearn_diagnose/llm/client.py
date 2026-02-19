@@ -207,7 +207,7 @@ class LangChainClient(LLMClient):
             return ChatOpenAI(
                 model=self.model_name,
                 api_key=self.api_key or os.environ.get("OPENAI_API_KEY"),
-                base_url=self.base_url or "https://api.openai.com/v1",
+                # base_url=self.base_url or "https://api.openai.com/v1",
                 **self.kwargs
             )
         
@@ -216,7 +216,7 @@ class LangChainClient(LLMClient):
             return ChatAnthropic(
                 model=self.model_name,
                 api_key=self.api_key or os.environ.get("ANTHROPIC_API_KEY"),
-                base_url=self.base_url or "https://api.anthropic.com",
+                # base_url=self.base_url or "https://api.anthropic.com",
                 **self.kwargs
             )
         
@@ -225,7 +225,16 @@ class LangChainClient(LLMClient):
             return ChatOpenAI(
                 model=self.model_name,
                 api_key=self.api_key or os.environ.get("OPENROUTER_API_KEY"),
-                base_url=self.base_url or "https://openrouter.ai/api/v1",
+                # base_url=self.base_url or "https://openrouter.ai/api/v1",
+                **self.kwargs
+            )
+        
+        elif self.provider == "groq":
+            from langchain_groq import ChatGroq
+            return ChatGroq(
+                model=self.model_name, 
+                api_key=self.api_key or os.envrion.get("GROQ_API_KEY"), 
+                # base_url=self.base_url or "", 
                 **self.kwargs
             )
         
