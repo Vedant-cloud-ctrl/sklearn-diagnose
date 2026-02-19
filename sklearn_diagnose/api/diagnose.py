@@ -186,7 +186,7 @@ def diagnose(
         estimator=estimator,
         datasets=datasets,
         task=task,
-        # cv_results=cv_results
+        cv_results=cv_results
     )
     
     # Layer 2: Extract signals (deterministic statistics)
