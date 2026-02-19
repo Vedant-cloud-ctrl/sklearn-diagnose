@@ -229,21 +229,20 @@ class LangChainClient(LLMClient):
                 **self.kwargs
             )
         
-        elif self.provider == "groq":
-            from langchain_groq import ChatGroq
-            return ChatGroq(
-                model=self.model_name, 
-                api_key=self.api_key or os.envrion.get("GROQ_API_KEY"), 
-                # base_url=self.base_url or "", 
-                **self.kwargs
-            )
+                elif self.provider == "groq":
+                    from langchain_groq import ChatGroq
+                    return ChatGroq(
+                        model=self.model_name,
+                        api_key=self.api_key or os.environ.get("GROQ_API_KEY"),
+                        # base_url=self.base_url or "",
+                        **self.kwargs
+                    )
         
-        else:
-            raise ValueError(
-                f"Unknown provider: {self.provider}. "
-                "Use 'openai', 'anthropic', or 'openrouter'."
-            )
-    
+                else:
+                    raise ValueError(
+                        f"Unknown provider: {self.provider}. "
+                        "Use 'openai', 'anthropic', 'openrouter', or 'groq'."
+                    )    
     def _invoke_agent(
         self,
         system_prompt: str,

@@ -10,6 +10,7 @@ Supports:
 - OpenAI (via langchain-openai)
 - Anthropic (via langchain-anthropic)
 - OpenRouter (via langchain-openai with custom base_url)
+- Groq (via langchain-groq)
 
 IMPORTANT: You must call setup_llm() before using diagnose().
 
@@ -27,6 +28,7 @@ from .client import (
     OpenAIClient,
     AnthropicClient,
     OpenRouterClient,
+    GroqChatClient,
     # Configuration
     setup_llm,
     _set_global_client,
@@ -45,6 +47,7 @@ __all__ = [
     "OpenAIClient",
     "AnthropicClient",
     "OpenRouterClient",
+    "GroqChatClient",
     # Configuration
     "setup_llm",
     # Generation functions
