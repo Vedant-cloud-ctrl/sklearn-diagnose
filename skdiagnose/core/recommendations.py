@@ -212,8 +212,7 @@ def get_insufficient_evidence_message(signals: Signals) -> Optional[str]:
     if signals.train_score is None:
         issues.append("Unable to compute training score")
     
-    if signals.val_score is None and signals.cv_mean is None:
-        issues.append("No validation or CV scores available for comparison")
+    # Note: Missing validation/CV data is handled via recommendation, not warning
     
     if signals.n_samples_train is not None and signals.n_samples_train < 50:
         issues.append(f"Very small training set ({signals.n_samples_train} samples)")
