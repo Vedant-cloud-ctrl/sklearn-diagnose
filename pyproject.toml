@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sklearn-diagnose"
-version = "0.1.2"
-description = "An intelligent diagnosis layer for scikit-learn: evidence-based model failure detection with LLM-powered summaries"
+name = "skdiagnose"
+version = "0.1.0"
+description = "An intelligent diagnosis layer for scikit-learn: evidence-based model failure detection with LLM-powered summaries (with Groq support)"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "sklearn-diagnose contributors"}
+    {name = "skdiagnose contributors"}
 ]
 keywords = [
     "machine-learning",
@@ -75,7 +75,7 @@ Issues = "https://github.com/leockl/sklearn-diagnose/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sklearn_diagnose*"]
+include = ["skdiagnose*"]
 
 [tool.black]
 line-length = 88

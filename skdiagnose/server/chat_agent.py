@@ -8,8 +8,8 @@ responses about a diagnosis report using the configured LLM.
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
-from sklearn_diagnose.core.schemas import DiagnosisReport, Hypothesis, Recommendation
-from sklearn_diagnose.llm.client import _get_global_client
+from skdiagnose.core.schemas import DiagnosisReport, Hypothesis, Recommendation
+from skdiagnose.llm.client import _get_global_client
 
 
 @dataclass

@@ -62,7 +62,7 @@ sklearn-diagnose uses a **multi-agent architecture** powered by [LangChain](http
 
 | Property | Value |
 |----------|-------|
-| **Location** | `sklearn_diagnose/llm/client.py` |
+| **Location** | `skdiagnose/llm/client.py` |
 | **Method** | `LangChainClient.generate_hypotheses()` |
 | **System Prompt** | `HYPOTHESIS_SYSTEM_PROMPT` |
 | **Input** | Extracted signals (dict), Task type (str) |
@@ -132,7 +132,7 @@ Guidelines:
 
 | Property | Value |
 |----------|-------|
-| **Location** | `sklearn_diagnose/llm/client.py` |
+| **Location** | `skdiagnose/llm/client.py` |
 | **Method** | `LangChainClient.generate_recommendations()` |
 | **System Prompt** | `RECOMMENDATION_SYSTEM_PROMPT` |
 | **Input** | List of hypotheses, Example recommendations (dict) |
@@ -183,7 +183,7 @@ Guidelines:
 
 | Property | Value |
 |----------|-------|
-| **Location** | `sklearn_diagnose/llm/client.py` |
+| **Location** | `skdiagnose/llm/client.py` |
 | **Method** | `LangChainClient.generate_summary()` |
 | **System Prompt** | `SUMMARY_SYSTEM_PROMPT` |
 | **Input** | Hypotheses, Recommendations, Signals, Task type |
@@ -248,7 +248,7 @@ Based on the analysis, here are the key findings:
 
 | Property | Value |
 |----------|-------|
-| **Location** | `sklearn_diagnose/server/chat_agent.py` |
+| **Location** | `skdiagnose/server/chat_agent.py` |
 | **Class** | `ChatAgent` |
 | **Input** | DiagnosisReport, User message (str) |
 | **Output** | Conversational response (str) |
@@ -311,7 +311,7 @@ class ChatAgent:
 #### Usage Example
 
 ```python
-from sklearn_diagnose import diagnose, launch_chatbot
+from skdiagnose import diagnose, launch_chatbot
 
 # Run diagnosis
 report = diagnose(model, datasets, task="classification")
@@ -320,7 +320,7 @@ report = diagnose(model, datasets, task="classification")
 launch_chatbot(report)
 
 # Or use ChatAgent directly in Python
-from sklearn_diagnose.server.chat_agent import ChatAgent
+from skdiagnose.server.chat_agent import ChatAgent
 
 agent = ChatAgent(report)
 response = agent.chat("What are the main issues with my model?")
@@ -368,16 +368,17 @@ result = agent.invoke({"messages": [system_message, user_message]})
 | **OpenAI** | `gpt-4o`, `gpt-4o-mini`, `gpt-4.1-mini` | `OPENAI_API_KEY` |
 | **Anthropic** | `claude-3-5-sonnet-latest`, `claude-3-haiku-20240307` | `ANTHROPIC_API_KEY` |
 | **OpenRouter** | `deepseek/deepseek-r1-0528`, `openai/gpt-4o` | `OPENROUTER_API_KEY` |
+| **Groq** | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768`, `gemma2-9b-it` | `GROQ_API_KEY` |
 
 ### Agent Invocation Flow
 
 ```python
 # 1. Setup LLM provider
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 setup_llm(provider="openai", model="gpt-4o")
 
 # 2. Run diagnosis (invokes 3 batch agents sequentially)
-from sklearn_diagnose import diagnose
+from skdiagnose import diagnose
 report = diagnose(model, datasets, task="classification")
 
 # Internal flow:
@@ -387,7 +388,7 @@ report = diagnose(model, datasets, task="classification")
 # └── Summary Agent → report.summary()
 
 # 3. (Optional) Launch interactive chatbot (4th agent)
-from sklearn_diagnose import launch_chatbot
+from skdiagnose import launch_chatbot
 launch_chatbot(report)  # Opens browser, starts Chat Agent
 ```
 
@@ -440,7 +441,7 @@ For testing, a `MockLLMClient` is provided that simulates agent behavior without
 
 ```python
 from tests.conftest import MockLLMClient
-from sklearn_diagnose.llm.client import _set_global_client
+from skdiagnose.llm.client import _set_global_client
 
 # Use mock client for testing
 _set_global_client(MockLLMClient())
@@ -461,7 +462,7 @@ The mock client implements the same interface as `LangChainClient`:
 ### Basic Setup
 
 ```python
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 
 # OpenAI
 setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
@@ -471,6 +472,9 @@ setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest", api_key="sk-an
 
 # OpenRouter
 setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="sk-or-...")
+
+# Groq (ultra-fast inference)
+setup_llm(provider="groq", model="llama-3.3-70b-versatile", api_key="gsk_...")
 ```
 
 ### Using Environment Variables
@@ -480,10 +484,11 @@ setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="sk-
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 OPENROUTER_API_KEY=sk-or-...
+GROQ_API_KEY=gsk_...
 ```
 
 ```python
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 
 # API key loaded automatically from environment
 setup_llm(provider="openai", model="gpt-4o")
@@ -497,16 +502,16 @@ setup_llm(provider="openai", model="gpt-4o")
 
 To add new failure modes, update:
 
-1. `sklearn_diagnose/core/schemas.py` - Add to `FailureMode` enum
-2. `sklearn_diagnose/core/recommendations.py` - Add example recommendations
-3. `sklearn_diagnose/llm/client.py` - Update `HYPOTHESIS_SYSTEM_PROMPT` with the new failure mode
+1. `skdiagnose/core/schemas.py` - Add to `FailureMode` enum
+2. `skdiagnose/core/recommendations.py` - Add example recommendations
+3. `skdiagnose/llm/client.py` - Update `HYPOTHESIS_SYSTEM_PROMPT` with the new failure mode
 
 ### Custom Agent Behavior
 
 For advanced customization, subclass `LangChainClient`:
 
 ```python
-from sklearn_diagnose.llm.client import LangChainClient
+from skdiagnose.llm.client import LangChainClient
 
 class CustomClient(LangChainClient):
     def generate_hypotheses(self, signals, task):
@@ -582,15 +587,15 @@ When modifying agent-related code, ensure:
 
 ```bash
 # Check that documented prompts match code
-grep -A 20 "HYPOTHESIS_SYSTEM_PROMPT" sklearn_diagnose/llm/client.py
-grep -A 20 "RECOMMENDATION_SYSTEM_PROMPT" sklearn_diagnose/llm/client.py
-grep -A 20 "SUMMARY_SYSTEM_PROMPT" sklearn_diagnose/llm/client.py
+grep -A 20 "HYPOTHESIS_SYSTEM_PROMPT" skdiagnose/llm/client.py
+grep -A 20 "RECOMMENDATION_SYSTEM_PROMPT" skdiagnose/llm/client.py
+grep -A 20 "SUMMARY_SYSTEM_PROMPT" skdiagnose/llm/client.py
 
 # Check failure modes enum matches documentation
-grep -A 10 "class FailureMode" sklearn_diagnose/core/schemas.py
+grep -A 10 "class FailureMode" skdiagnose/core/schemas.py
 
 # Check agent methods exist
-grep "def generate_" sklearn_diagnose/llm/client.py
+grep "def generate_" skdiagnose/llm/client.py
 ```
 
 ---

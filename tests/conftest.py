@@ -10,8 +10,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from sklearn_diagnose.llm.client import LLMClient, _set_global_client
-from sklearn_diagnose.core.schemas import FailureMode, Hypothesis, Recommendation
+from skdiagnose.llm.client import LLMClient, _set_global_client
+from skdiagnose.core.schemas import FailureMode, Hypothesis, Recommendation
 
 
 class MockLLMClient(LLMClient):
@@ -327,7 +327,7 @@ def sample_diagnosis_report():
     This fixture creates a minimal but realistic DiagnosisReport that can be
     used to test the ChatAgent and API endpoints.
     """
-    from sklearn_diagnose.core.schemas import (
+    from skdiagnose.core.schemas import (
         DiagnosisReport, Hypothesis, Recommendation, Signals, TaskType, FailureMode
     )
 

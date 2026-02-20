@@ -7,7 +7,7 @@ for model diagnosis.
 IMPORTANT: You must set up an LLM provider before using diagnose().
 Call setup_llm() first:
 
-    from sklearn_diagnose import setup_llm, diagnose
+    from skdiagnose import setup_llm, diagnose
     
     setup_llm(provider="openai", model="gpt-4o", api_key="your-key")
     
@@ -51,7 +51,7 @@ def diagnose(
     estimator: BaseEstimator,
     datasets: Dict[str, Tuple[np.ndarray, np.ndarray]],
     task: Union[str, TaskType],
-    cv_results: Optional[Dict[str, Any]] = None,
+    # cv_results: Optional[Dict[str, Any]] = None,
     max_recommendations: int = 5
 ) -> DiagnosisReport:
     """
@@ -126,7 +126,7 @@ def diagnose(
         Basic usage with holdout validation:
         
             >>> from sklearn.linear_model import LogisticRegression
-            >>> from sklearn_diagnose import setup_llm, diagnose
+            >>> from skdiagnose import setup_llm, diagnose
             >>> 
             >>> # Set up LLM (required)
             >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
@@ -143,22 +143,6 @@ def diagnose(
             ...     task="classification"
             ... )
             >>> print(report.summary())
-        
-        With cross-validation results:
-        
-            >>> from sklearn.model_selection import cross_validate
-            >>> 
-            >>> cv_results = cross_validate(
-            ...     model, X_train, y_train,
-            ...     cv=5, return_train_score=True
-            ... )
-            >>> 
-            >>> report = diagnose(
-            ...     estimator=model,
-            ...     datasets={"train": (X_train, y_train)},
-            ...     task="classification",
-            ...     cv_results=cv_results
-            ... )
     
     Notes:
         - You MUST call setup_llm() before using diagnose()
@@ -186,7 +170,7 @@ def diagnose(
         estimator=estimator,
         datasets=datasets,
         task=task,
-        cv_results=cv_results
+        # cv_results=cv_results
     )
     
     # Layer 2: Extract signals (deterministic statistics)

@@ -19,8 +19,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
-from sklearn_diagnose import diagnose
-from sklearn_diagnose.core import FailureMode, TaskType
+from skdiagnose import diagnose
+from skdiagnose.core import FailureMode, TaskType
 
 
 # Note: MockLLMClient fixture is automatically applied from conftest.py
@@ -81,7 +81,7 @@ class TestLLMRequirement:
     
     def test_diagnose_fails_without_llm(self, classification_data):
         """Test that diagnose fails when no LLM is configured."""
-        from sklearn_diagnose.llm.client import _set_global_client
+        from skdiagnose.llm.client import _set_global_client
         
         X_train, X_val, y_train, y_val = classification_data
         
@@ -623,7 +623,7 @@ class TestChatAgent:
 
     def test_chat_agent_initialization(self, sample_diagnosis_report):
         """Test that ChatAgent initializes correctly with a diagnosis report."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
 
@@ -633,8 +633,8 @@ class TestChatAgent:
 
     def test_chat_agent_requires_llm(self, sample_diagnosis_report):
         """Test that ChatAgent fails if no LLM is configured."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
-        from sklearn_diagnose.llm.client import _set_global_client
+        from skdiagnose.server.chat_agent import ChatAgent
+        from skdiagnose.llm.client import _set_global_client
 
         # Temporarily remove the LLM client
         _set_global_client(None)
@@ -648,7 +648,7 @@ class TestChatAgent:
 
     def test_chat_response(self, sample_diagnosis_report):
         """Test that chat method produces a response."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
         response = agent.chat("What issues were detected?")
@@ -659,7 +659,7 @@ class TestChatAgent:
 
     def test_conversation_history_tracking(self, sample_diagnosis_report):
         """Test that conversation history is properly maintained."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
         agent.chat("First message")
@@ -674,7 +674,7 @@ class TestChatAgent:
 
     def test_clear_history(self, sample_diagnosis_report):
         """Test clearing conversation history."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
         agent.chat("First message")
@@ -687,7 +687,7 @@ class TestChatAgent:
 
     def test_welcome_message_generation(self, sample_diagnosis_report):
         """Test that welcome message is generated correctly."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
         welcome = agent.get_welcome_message()
@@ -699,7 +699,7 @@ class TestChatAgent:
 
     def test_welcome_message_no_issues(self, sample_diagnosis_report):
         """Test welcome message when no issues are detected."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         # Create a report with no issues
         report_no_issues = sample_diagnosis_report
@@ -713,7 +713,7 @@ class TestChatAgent:
 
     def test_system_prompt_includes_context(self, sample_diagnosis_report):
         """Test that system prompt includes diagnosis context."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
         system_prompt = agent._build_system_prompt()
@@ -730,7 +730,7 @@ class TestChatbotLauncher:
 
     def test_set_diagnosis_report_does_not_raise(self, sample_diagnosis_report):
         """Test that set_diagnosis_report accepts a valid report without errors."""
-        from sklearn_diagnose.server.app import set_diagnosis_report
+        from skdiagnose.server.app import set_diagnosis_report
 
         # This should not raise an error
         try:
@@ -743,7 +743,7 @@ class TestChatbotLauncher:
 
     def test_set_diagnosis_report_returns_none(self, sample_diagnosis_report):
         """Test that set_diagnosis_report returns None."""
-        from sklearn_diagnose.server.app import set_diagnosis_report
+        from skdiagnose.server.app import set_diagnosis_report
 
         result = set_diagnosis_report(sample_diagnosis_report)
 
@@ -755,13 +755,13 @@ class TestFastAPIEndpoints:
 
     def test_get_chat_agent_after_set_report(self, sample_diagnosis_report):
         """Test that get_chat_agent works after setting a report."""
-        from sklearn_diagnose.server.app import set_diagnosis_report, get_chat_agent
+        from skdiagnose.server.app import set_diagnosis_report, get_chat_agent
 
         set_diagnosis_report(sample_diagnosis_report)
         agent = get_chat_agent()
 
         # Should return a ChatAgent instance
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
         assert isinstance(agent, ChatAgent)
         assert agent.report == sample_diagnosis_report
 
@@ -771,7 +771,7 @@ class TestChatbotIntegration:
 
     def test_complete_chat_flow(self, sample_diagnosis_report):
         """Test a complete chat interaction flow."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         # Create agent
         agent = ChatAgent(sample_diagnosis_report)
@@ -800,7 +800,7 @@ class TestChatbotIntegration:
 
     def test_chat_with_empty_message(self, sample_diagnosis_report):
         """Test that chatting with empty message still works (handled by API layer)."""
-        from sklearn_diagnose.server.chat_agent import ChatAgent
+        from skdiagnose.server.chat_agent import ChatAgent
 
         agent = ChatAgent(sample_diagnosis_report)
 
@@ -860,8 +860,8 @@ class TestRealLLMIntegration:
     @pytest.mark.skip(reason="Integration test with real LLM - run manually")
     def test_openai_integration(self, test_data, trained_model):
         """Test with OpenAI GPT models."""
-        from sklearn_diagnose import setup_llm, diagnose
-        from sklearn_diagnose.llm.client import _set_global_client
+        from skdiagnose import setup_llm, diagnose
+        from skdiagnose.llm.client import _set_global_client
         import os
 
         X_train, X_val, y_train, y_val = test_data
@@ -915,8 +915,8 @@ class TestRealLLMIntegration:
     @pytest.mark.skip(reason="Integration test with real LLM - run manually")
     def test_anthropic_integration(self, test_data, trained_model):
         """Test with Anthropic Claude models."""
-        from sklearn_diagnose import setup_llm, diagnose
-        from sklearn_diagnose.llm.client import _set_global_client
+        from skdiagnose import setup_llm, diagnose
+        from skdiagnose.llm.client import _set_global_client
         import os
 
         X_train, X_val, y_train, y_val = test_data
@@ -970,8 +970,8 @@ class TestRealLLMIntegration:
     @pytest.mark.skip(reason="Integration test with real LLM - run manually")
     def test_openrouter_integration(self, test_data, trained_model):
         """Test with OpenRouter DeepSeek models."""
-        from sklearn_diagnose import setup_llm, diagnose
-        from sklearn_diagnose.llm.client import _set_global_client
+        from skdiagnose import setup_llm, diagnose
+        from skdiagnose.llm.client import _set_global_client
         import os
 
         X_train, X_val, y_train, y_val = test_data

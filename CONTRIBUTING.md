@@ -40,9 +40,9 @@ We use the following tools to maintain code quality:
 
 Before submitting a PR, run:
 ```bash
-black sklearn_diagnose tests
-ruff check sklearn_diagnose tests
-mypy sklearn_diagnose
+black skdiagnose tests
+ruff check skdiagnose tests
+mypy skdiagnose
 ```
 
 ### Running Tests
@@ -52,7 +52,7 @@ mypy sklearn_diagnose
 pytest
 
 # Run with coverage
-pytest --cov=sklearn_diagnose
+pytest --cov=skdiagnose
 
 # Run specific test file
 pytest tests/unit_test_diagnose.py
@@ -101,7 +101,7 @@ cd frontend
 npm run build
 ```
 
-This creates production files in `frontend/dist/` which are automatically copied to `sklearn_diagnose/server/static/` and included in the pip package via `MANIFEST.in`.
+This creates production files in `frontend/dist/` which are automatically copied to `skdiagnose/server/static/` and included in the pip package via `MANIFEST.in`.
 
 #### Frontend Structure
 

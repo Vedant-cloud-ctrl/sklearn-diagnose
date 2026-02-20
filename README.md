@@ -52,7 +52,7 @@ The interactive chatbot feature is included by default! When you install sklearn
 ```python
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn_diagnose import setup_llm, diagnose
+from skdiagnose import setup_llm, diagnose
 
 # Set up LLM (REQUIRED - must specify provider, model, and api_key)
 # Using OpenAI:
@@ -64,6 +64,9 @@ setup_llm(provider="openai", model="gpt-4o", api_key="your-openai-key")
 
 # Or using OpenRouter (access to many models):
 # setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="your-openrouter-key")
+
+# Or using Groq (ultra-fast inference):
+# setup_llm(provider="groq", model="llama-3.3-70b-versatile", api_key="your-groq-key")
 
 # Your existing sklearn workflow
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
@@ -93,7 +96,7 @@ import os
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
-from sklearn_diagnose import setup_llm, diagnose
+from skdiagnose import setup_llm, diagnose
 
 # Set up LLM (required - do this once at startup)
 os.environ["OPENAI_API_KEY"] = "your-key"
@@ -167,7 +170,7 @@ The chatbot dependencies (FastAPI, Uvicorn, python-multipart) are included by de
 **Just ONE terminal, ONE Python script:**
 
 ```python
-from sklearn_diagnose import setup_llm, diagnose, launch_chatbot
+from skdiagnose import setup_llm, diagnose, launch_chatbot
 
 # 1. Configure LLM
 setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
@@ -228,7 +231,7 @@ FastAPI Server (serves both frontend & API)
          ↓
 ChatAgent (maintains conversation history)
          ↓
-LLM Client (OpenAI/Anthropic/OpenRouter)
+LLM Client (OpenAI/Anthropic/OpenRouter/Groq)
 ```
 
 #### Troubleshooting
@@ -408,7 +411,7 @@ sklearn-diagnose uses **LangChain** under the hood for LLM integration. Each dia
 - **Summary Agent**: Creates human-readable summaries
 
 ```python
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 
 # Using OpenAI
 setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
@@ -418,6 +421,9 @@ setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest", api_key="sk-an
 
 # Using OpenRouter (access to many models)
 setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="sk-or-...")
+
+# Using Groq (ultra-fast inference)
+setup_llm(provider="groq", model="llama-3.3-70b-versatile", api_key="gsk_...")
 ```
 
 ### Using Environment Variables
@@ -428,7 +434,7 @@ You can set API keys via environment variables in two ways:
 
 ```python
 import os
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 
 # Set environment variable in your code
 os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -441,6 +447,10 @@ setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest")
 # Or for OpenRouter
 os.environ["OPENROUTER_API_KEY"] = "sk-or-..."
 setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528")
+
+# Or for Groq
+os.environ["GROQ_API_KEY"] = "gsk_..."
+setup_llm(provider="groq", model="llama-3.3-70b-versatile")
 ```
 
 **Option 2: Use a `.env` file (recommended for production)**
@@ -452,24 +462,26 @@ Create a `.env` file in your project root:
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 OPENROUTER_API_KEY=sk-or-...
+GROQ_API_KEY=gsk_...
 ```
 
 The library uses `python-dotenv` internally to automatically load the `.env` file (no need to import or call load_dotenv() yourself):
 
 ```python
-from sklearn_diagnose import setup_llm
+from skdiagnose import setup_llm
 
 # API keys are automatically loaded from .env file
 setup_llm(provider="openai", model="gpt-4o")
 setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest")
 setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528")
+setup_llm(provider="groq", model="llama-3.3-70b-versatile")
 ```
 
 ## Architecture
 
 ```
 sklearn-diagnose/                 # Project root
-├── sklearn_diagnose/             # Main package
+├── skdiagnose/                   # Main package
 │   ├── __init__.py               # Package exports (setup_llm, diagnose, launch_chatbot, types)
 │   ├── api/
 │   │   ├── __init__.py
@@ -566,8 +578,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 If you use sklearn-diagnose in your research, please cite:
 
 ```bibtex
-@software{sklearn_diagnose,
-  title = {sklearn-diagnose: Evidence-based model failure diagnosis for scikit-learn},
+@software{skdiagnose,
+  title = {skdiagnose: Evidence-based model failure diagnosis for scikit-learn},
   year = {2025},
   url = {https://github.com/leockl/sklearn-diagnose}
 }

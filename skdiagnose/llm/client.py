@@ -229,20 +229,21 @@ class LangChainClient(LLMClient):
                 **self.kwargs
             )
         
-                elif self.provider == "groq":
-                    from langchain_groq import ChatGroq
-                    return ChatGroq(
-                        model=self.model_name,
-                        api_key=self.api_key or os.environ.get("GROQ_API_KEY"),
-                        # base_url=self.base_url or "",
-                        **self.kwargs
-                    )
+        elif self.provider == "groq":
+            from langchain_groq import ChatGroq
+            return ChatGroq(
+                model=self.model_name,
+                api_key=self.api_key or os.environ.get("GROQ_API_KEY"),
+                # base_url=self.base_url or "",
+                **self.kwargs
+            )
         
-                else:
-                    raise ValueError(
-                        f"Unknown provider: {self.provider}. "
-                        "Use 'openai', 'anthropic', 'openrouter', or 'groq'."
-                    )    
+        else: 
+            raise ValueError(
+            f"Unknown provider: {self.provider}. "
+            "Use 'openai', 'anthropic', 'openrouter', or 'groq'."
+            )    
+        
     def _invoke_agent(
         self,
         system_prompt: str,
@@ -481,6 +482,29 @@ class OpenRouterClient(LangChainClient):
         )
 
 
+class GroqChatClient(LangChainClient):
+    """
+    Groq client using LangChain.
+    
+    Groq provides ultra-fast inference for open-source models like
+    Llama, Mixtral, Gemma, and more through their LPU technology.
+    
+    Example:
+        >>> client = GroqChatClient(model="llama-3.3-70b-versatile", api_key="gsk_...")
+        >>> # Or using environment variable
+        >>> os.environ["GROQ_API_KEY"] = "gsk_..."
+        >>> client = GroqChatClient(model="llama-3.3-70b-versatile")
+    """
+    
+    def __init__(self, model: str, api_key: Optional[str] = None, **kwargs):
+        super().__init__(
+            provider="groq",
+            model=model,
+            api_key=api_key,
+            **kwargs
+        )
+
+
 # =============================================================================
 # GLOBAL CLIENT MANAGEMENT
 # =============================================================================
@@ -517,20 +541,23 @@ def setup_llm(
             - "openai": Use OpenAI models (GPT-4o, GPT-4o-mini, etc.)
             - "anthropic": Use Anthropic models (Claude 3.5 Sonnet, etc.)
             - "openrouter": Use OpenRouter for access to multiple models
+            - "groq": Use Groq for ultra-fast inference (Llama, Mixtral, etc.)
         model: The model identifier. Examples:
             - OpenAI: "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"
             - Anthropic: "claude-3-5-sonnet-latest", "claude-3-haiku-20240307"
             - OpenRouter: "deepseek/deepseek-r1-0528", "openai/gpt-4o"
+            - Groq: "llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"
         api_key: API key for the provider. If not provided, will look for:
             - OpenAI: OPENAI_API_KEY environment variable
             - Anthropic: ANTHROPIC_API_KEY environment variable
             - OpenRouter: OPENROUTER_API_KEY environment variable
+            - Groq: GROQ_API_KEY environment variable
         base_url: Custom base URL (optional, mainly for OpenRouter or proxies)
         **kwargs: Additional arguments passed to the LangChain model
     
     Examples:
         # OpenAI
-        >>> from sklearn_diagnose import setup_llm
+        >>> from skdiagnose import setup_llm
         >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
         
         # Using environment variable (recommended)
@@ -547,6 +574,9 @@ def setup_llm(
         
         # OpenRouter (access to many models)
         >>> setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="sk-or-...")
+        
+        # Groq (ultra-fast inference)
+        >>> setup_llm(provider="groq", model="llama-3.3-70b-versatile", api_key="gsk_...")
     """
     global _global_client
     
@@ -561,6 +591,8 @@ def setup_llm(
         _global_client = AnthropicClient(model=model, api_key=api_key, **kwargs)
     elif provider_lower == "openrouter":
         _global_client = OpenRouterClient(model=model, api_key=api_key, **kwargs)
+    elif provider_lower == "groq": 
+        _global_client = GroqChatClient(model=model, api_key=api_key, **kwargs)
     else:
         # Generic LangChain client for other providers
         _global_client = LangChainClient(

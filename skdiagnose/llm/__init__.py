@@ -15,7 +15,7 @@ Supports:
 IMPORTANT: You must call setup_llm() before using diagnose().
 
 Example:
-    >>> from sklearn_diagnose import setup_llm, diagnose
+    >>> from skdiagnose import setup_llm, diagnose
     >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
     >>> report = diagnose(model, datasets, task="classification")
 """

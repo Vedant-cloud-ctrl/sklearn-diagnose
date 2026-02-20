@@ -15,8 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from sklearn_diagnose.core.schemas import DiagnosisReport
-from sklearn_diagnose.server.chat_agent import ChatAgent
+from skdiagnose.core.schemas import DiagnosisReport
+from skdiagnose.server.chat_agent import ChatAgent
 
 
 # Get the static files directory

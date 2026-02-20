@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 # Load API keys from .env file
 load_dotenv()
 
-from sklearn_diagnose import setup_llm, diagnose, launch_chatbot
+from skdiagnose import setup_llm, diagnose, launch_chatbot
 
 
 def main():

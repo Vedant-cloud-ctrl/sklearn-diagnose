@@ -11,7 +11,7 @@ sklearn-diagnose, used to detect instability, overfitting, and potential
 data leakage.
 
 Quick Start:
-    >>> from sklearn_diagnose import setup_llm, diagnose
+    >>> from skdiagnose import setup_llm, diagnose
     >>> 
     >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
     >>> 
@@ -47,7 +47,7 @@ Detected Failure Modes:
     - Data leakage (suspicious patterns)
 
 LLM Setup (required):
-    >>> from sklearn_diagnose import setup_llm
+    >>> from skdiagnose import setup_llm
     >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
 """
 

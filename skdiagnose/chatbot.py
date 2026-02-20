@@ -12,7 +12,7 @@ import sys
 
 import uvicorn
 
-from sklearn_diagnose.core.schemas import DiagnosisReport
+from skdiagnose.core.schemas import DiagnosisReport
 
 
 def launch_chatbot(
@@ -37,7 +37,7 @@ def launch_chatbot(
         auto_open_browser: Whether to automatically open the browser (default: True)
 
     Example:
-        >>> from sklearn_diagnose import setup_llm, diagnose, launch_chatbot
+        >>> from skdiagnose import setup_llm, diagnose, launch_chatbot
         >>> setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
         >>> report = diagnose(model, datasets, task="classification")
         >>> launch_chatbot(report)
@@ -46,7 +46,7 @@ def launch_chatbot(
         Make sure you've called setup_llm() before using this function.
         The chatbot uses the configured LLM to answer questions.
     """
-    from sklearn_diagnose.server.app import set_diagnosis_report
+    from skdiagnose.server.app import set_diagnosis_report
 
     # Set the diagnosis report for the server
     set_diagnosis_report(report)
@@ -79,7 +79,7 @@ def launch_chatbot(
     # Run the server
     try:
         uvicorn.run(
-            "sklearn_diagnose.server.app:app",
+            "skdiagnose.server.app:app",
             host=host,
             port=port,
             log_level="info",
@@ -93,11 +93,11 @@ def main():
     """
     CLI entry point for the chatbot.
 
-    This is used when running: python -m sklearn_diagnose.chatbot
+    This is used when running: python -m skdiagnose.chatbot
     """
     print("[X] Error: No diagnosis report provided.")
     print("\nUsage:")
-    print("  from sklearn_diagnose import launch_chatbot")
+    print("  from skdiagnose import launch_chatbot")
     print("  launch_chatbot(report)")
     print("\nYou must first run diagnose() to generate a report, then pass it to launch_chatbot().")
     sys.exit(1)
