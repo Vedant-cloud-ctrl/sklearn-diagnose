@@ -192,6 +192,18 @@ def diagnose(
         max_recommendations=max_recommendations
     )
     
+    # Add CV recommendation if no validation/CV data was provided
+    if signals.val_score is None and signals.cv_mean is None:
+        from skdiagnose.core.schemas import Recommendation
+        cv_recommendation = Recommendation(
+            action="Use cross-validation for robust model evaluation and hyperparameter tuning",
+            rationale="Cross-validation (e.g., sklearn.model_selection.cross_val_score or GridSearchCV) "
+                      "provides more reliable performance estimates by testing on multiple data splits. "
+                      "This helps detect overfitting and ensures hyperparameters generalize well to unseen data.",
+            related_hypothesis=None
+        )
+        recommendations.append(cv_recommendation)
+    
     # Layer 4b: Generate LLM summary (includes hypotheses and recommendations)
     llm_summary = generate_llm_summary(
         hypotheses=hypotheses,

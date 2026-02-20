@@ -142,14 +142,8 @@ def validate_datasets(
                 warnings_list.append(leakage_check)
     
     # Validate evidence sources
-    has_val = "val" in datasets and datasets["val"][0] is not None
-    has_cv = cv_results is not None
-    
-    if not has_val and not has_cv:
-        warnings_list.append(
-            "No validation set or CV results provided. "
-            "Diagnosis will be limited to training data analysis only."
-        )
+    # Note: If no validation/CV data is provided, a recommendation will be added
+    # in the diagnose() function instead of showing a warning here
     
     return ValidationResult(
         is_valid=len(errors) == 0,
