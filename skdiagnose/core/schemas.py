@@ -29,6 +29,10 @@ class FailureMode(str, Enum):
     FEATURE_REDUNDANCY = "feature_redundancy"
     CLASS_IMBALANCE = "class_imbalance"
     DATA_LEAKAGE = "data_leakage"
+    DISTRIBUTION_SHIFT = "distribution_shift"
+    MULTICOLLINEARITY = "multicollinearity"
+    TARGET_LEAKAGE = "target_leakage"
+    FEATURE_IMPORTANCE_SKEW = "feature_importance_skew"
 
 
 class ConfidenceLevel(str, Enum):
@@ -80,6 +84,7 @@ class Evidence:
     
     # Feature information
     feature_names: Optional[List[str]] = None
+    feature_importances: Optional[np.ndarray] = None  # From estimator
     
     @property
     def has_validation_set(self) -> bool:
@@ -149,6 +154,19 @@ class Signals:
     high_correlation_pairs: Optional[List[Tuple[int, int, float]]] = None
     feature_importances: Optional[np.ndarray] = None
     feature_target_correlations: Optional[np.ndarray] = None
+    feature_importance_top_n: Optional[List[Tuple[int, float]]] = None  # Top N features by importance
+    feature_importance_concentration: Optional[float] = None  # % of importance in top 3 features
+    
+    # Distribution shift indicators
+    feature_distribution_divergence: Optional[Dict[int, float]] = None  # KL divergence per feature
+    distribution_shift_detected: Optional[bool] = None
+    
+    # Multicollinearity
+    max_vif: Optional[float] = None  # Max Variance Inflation Factor
+    high_vif_features: Optional[List[Tuple[int, float]]] = None
+    
+    # Target leakage indicators
+    perfect_correlation_features: Optional[List[int]] = None  # Features with |corr| > 0.95 with target
     
     # Data quality
     n_samples_train: Optional[int] = None
@@ -201,6 +219,18 @@ class Hypothesis:
     def is_actionable(self) -> bool:
         """Check if hypothesis has sufficient confidence to act on."""
         return self.confidence >= 0.25
+    
+    def __str__(self) -> str:
+        """Human-readable string representation."""
+        return (
+            f"{self.name.value.replace('_', ' ').title()} "
+            f"(confidence: {self.confidence:.0%}, severity: {self.severity})\n"
+            f"  Evidence:\n" + 
+            "\n".join(f"    - {e}" for e in self.evidence)
+        )
+    
+    def __repr__(self) -> str:
+        return f"Hypothesis({self.name.value}, confidence={self.confidence:.2f}, severity={self.severity})"
 
 
 @dataclass
@@ -214,7 +244,13 @@ class Recommendation:
     related_hypothesis: Optional[FailureMode] = None
     
     def __str__(self) -> str:
-        return self.action
+        result = f"{self.action}\n  Rationale: {self.rationale}"
+        if self.related_hypothesis:
+            result += f"\n  Addresses: {self.related_hypothesis.value}"
+        return result
+    
+    def __repr__(self) -> str:
+        return f"Recommendation({self.action[:50]}...)"
 
 
 @dataclass  

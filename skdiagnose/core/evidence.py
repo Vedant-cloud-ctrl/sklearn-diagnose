@@ -311,6 +311,9 @@ def collect_evidence(
     # Extract feature names if available
     feature_names = _extract_feature_names(estimator, X_train)
     
+    # Extract feature importances if available
+    feature_importances = _extract_feature_importances(estimator)
+    
     return Evidence(
         X_train=X_train,
         y_train=y_train,
@@ -322,7 +325,8 @@ def collect_evidence(
         y_proba_val=y_proba_val,
         cv_results=cv_results,
         task=task,
-        feature_names=feature_names
+        feature_names=feature_names,
+        feature_importances=feature_importances
     )
 
 
@@ -384,3 +388,44 @@ def get_estimator_type(estimator: BaseEstimator) -> str:
 def is_pipeline(estimator: BaseEstimator) -> bool:
     """Check if estimator is a Pipeline."""
     return isinstance(estimator, Pipeline)
+
+
+def _extract_feature_importances(estimator: BaseEstimator) -> Optional[np.ndarray]:
+    """
+    Extract feature importances from estimator if available.
+    
+    Supports:
+    - Tree-based models (feature_importances_)
+    - Linear models (coef_ as proxy)
+    - Pipelines (extracts from final estimator)
+    
+    Args:
+        estimator: A fitted scikit-learn estimator
+        
+    Returns:
+        Array of feature importances, or None if not available
+    """
+    try:
+        # For tree-based models (RandomForest, GradientBoosting, etc.)
+        if hasattr(estimator, "feature_importances_"):
+            return np.array(estimator.feature_importances_)
+        
+        # For linear models (use absolute coefficients as importance proxy)
+        if hasattr(estimator, "coef_"):
+            coefs = np.array(estimator.coef_)
+            if coefs.ndim > 1:
+                # Multi-class: average absolute coefficients across classes
+                coefs = np.abs(coefs).mean(axis=0)
+            else:
+                coefs = np.abs(coefs)
+            return coefs
+        
+        # For pipelines, look at the final estimator
+        if isinstance(estimator, Pipeline):
+            final_step = estimator.steps[-1][1]
+            return _extract_feature_importances(final_step)
+            
+    except Exception:
+        pass
+    
+    return None

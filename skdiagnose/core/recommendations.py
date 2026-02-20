@@ -166,6 +166,78 @@ RECOMMENDATION_TEMPLATES: Dict[FailureMode, List[dict]] = {
             "rationale": "A truly independent holdout set provides unbiased performance estimates",
         },
     ],
+    
+    FailureMode.DISTRIBUTION_SHIFT: [
+        {
+            "action": "Compare feature distributions between train and validation sets",
+            "rationale": "Visualizing distributions can reveal covariate shift that hurts generalization",
+        },
+        {
+            "action": "Use domain adaptation techniques",
+            "rationale": "Methods like transfer learning or importance weighting can handle distribution shift",
+        },
+        {
+            "action": "Collect more representative training data",
+            "rationale": "Training data should cover the same distribution as production data",
+        },
+        {
+            "action": "Apply data augmentation to increase diversity",
+            "rationale": "Augmentation can help the model generalize to shifted distributions",
+        },
+    ],
+    
+    FailureMode.MULTICOLLINEARITY: [
+        {
+            "action": "Calculate VIF (Variance Inflation Factor) for features",
+            "rationale": "VIF > 10 indicates severe multicollinearity that can destabilize coefficients",
+        },
+        {
+            "action": "Remove or combine highly correlated features",
+            "rationale": "Keeping only one feature from correlated groups reduces redundancy",
+        },
+        {
+            "action": "Use PCA or other dimensionality reduction",
+            "rationale": "PCA creates orthogonal components that eliminate multicollinearity",
+        },
+        {
+            "action": "Use regularization (L1/L2)",
+            "rationale": "Regularization handles multicollinearity by shrinking unstable coefficients",
+        },
+    ],
+    
+    FailureMode.TARGET_LEAKAGE: [
+        {
+            "action": "Remove features that directly encode the target",
+            "rationale": "Features with perfect or near-perfect correlation to target are likely leaking",
+        },
+        {
+            "action": "Audit feature engineering pipeline for temporal leaks",
+            "rationale": "Ensure no features are computed using future information",
+        },
+        {
+            "action": "Check for proxy features that shouldn't be available at prediction time",
+            "rationale": "Some features may not be available in production when making predictions",
+        },
+    ],
+    
+    FailureMode.FEATURE_IMPORTANCE_SKEW: [
+        {
+            "action": "Investigate why few features dominate predictions",
+            "rationale": "Model may be ignoring useful information in other features",
+        },
+        {
+            "action": "Apply feature engineering to underutilized features",
+            "rationale": "Transformations or interactions may make features more predictive",
+        },
+        {
+            "action": "Remove dominant features temporarily to see if others are predictive",
+            "rationale": "This can reveal if the model is overly reliant on few features",
+        },
+        {
+            "action": "Check if dominant features are causing data leakage",
+            "rationale": "Features with extremely high importance may be leaking target information",
+        },
+    ],
 }
 
 

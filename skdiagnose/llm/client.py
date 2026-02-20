@@ -814,6 +814,10 @@ Available failure modes to consider:
 5. feature_redundancy - Highly correlated or duplicate features
 6. label_noise - Incorrect or noisy target labels
 7. data_leakage - Information from validation leaking into training
+8. distribution_shift - Training and validation data come from different distributions
+9. multicollinearity - Features are highly linearly dependent, causing unstable coefficients
+10. target_leakage - Feature directly encodes target information (perfect or near-perfect correlation)
+11. calibration_error - Predicted probabilities don't match actual frequencies (classification only)
 """
     
     prompt = f"""Analyze these model diagnostic signals and identify potential failure modes.
@@ -835,6 +839,10 @@ IMPORTANT:
 - For feature_redundancy, include the specific correlated feature pairs and their correlation values in the evidence.
 - For class_imbalance, include the class distribution and any per-class recall/precision disparities in the evidence.
 - For data_leakage, include the CV-to-holdout gap and any suspicious feature-target correlations in the evidence.
+- For distribution_shift, include train/val performance difference and any detected distribution divergence.
+- For multicollinearity, include VIF values or highly correlated feature pairs.
+- For target_leakage, include features with suspiciously high target correlation (>0.9).
+- For calibration_error, include calibration curve deviations or Brier score if available.
 
 Return your analysis as JSON."""
     
@@ -921,19 +929,24 @@ Task type: {task}
 Observed Signals:
 {chr(10).join(signal_lines) if signal_lines else "- Limited signals available"}
 
-Detected Issues:
+Detected Issues (Hypotheses):
 {chr(10).join(hypothesis_lines) if hypothesis_lines else "- No significant issues detected"}
 
 Recommendations to Address Issues:
 {chr(10).join(rec_lines) if rec_lines else "- No recommendations"}
 
-Please provide a clear diagnostic report that includes:
+Please provide a clear diagnostic report with this EXACT structure:
 
-1. **Diagnosis**: What is happening with this model and why
+## Detected Issues
+[List each detected issue with its confidence score and key evidence. If no issues, state the model appears healthy.]
 
-2. **Recommendations**: Present the recommendations above in a clear, prioritized format
+## Diagnosis
+[Brief explanation of what is happening with this model and why - under 100 words]
 
-Keep the diagnosis section concise (under 150 words). Present all recommendations clearly."""
+## Recommendations
+[Present the recommendations above in a numbered list with rationale]
+
+IMPORTANT: Always include the "Detected Issues" section showing what was found."""
     
     return prompt
 

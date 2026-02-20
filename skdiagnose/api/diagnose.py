@@ -51,7 +51,7 @@ def diagnose(
     estimator: BaseEstimator,
     datasets: Dict[str, Tuple[np.ndarray, np.ndarray]],
     task: Union[str, TaskType],
-    # cv_results: Optional[Dict[str, Any]] = None,
+    cv_results: Optional[Dict[str, Any]] = None,
     max_recommendations: int = 5
 ) -> DiagnosisReport:
     """
@@ -170,7 +170,7 @@ def diagnose(
         estimator=estimator,
         datasets=datasets,
         task=task,
-        # cv_results=cv_results
+        cv_results=cv_results
     )
     
     # Layer 2: Extract signals (deterministic statistics)

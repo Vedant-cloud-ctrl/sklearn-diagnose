@@ -247,8 +247,38 @@ def _extract_feature_signals(evidence: Evidence, signals: Signals) -> None:
             else:
                 feature_target_corr.append(0.0)
         signals.feature_target_correlations = np.array(feature_target_corr)
+        
+        # Check for perfect correlation features (potential target leakage)
+        perfect_corr = []
+        for i, corr in enumerate(feature_target_corr):
+            if abs(corr) > 0.95:
+                perfect_corr.append(i)
+        if perfect_corr:
+            signals.perfect_correlation_features = perfect_corr
     except Exception:
         pass
+    
+    # Feature importance analysis
+    if evidence.feature_importances is not None:
+        try:
+            importances = evidence.feature_importances
+            signals.feature_importances = importances
+            
+            # Get top N features by importance
+            sorted_indices = np.argsort(importances)[::-1]
+            signals.feature_importance_top_n = [
+                (int(idx), float(importances[idx])) 
+                for idx in sorted_indices[:5]
+            ]
+            
+            # Concentration: percentage of total importance in top 3 features
+            if len(importances) >= 3:
+                total = float(np.sum(importances))
+                if total > 0:
+                    top_3_sum = float(np.sum(np.sort(importances)[::-1][:3]))
+                    signals.feature_importance_concentration = top_3_sum / total
+        except Exception:
+            pass
 
 
 def _extract_leakage_signals(evidence: Evidence, signals: Signals) -> None:
