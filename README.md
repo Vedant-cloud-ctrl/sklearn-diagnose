@@ -90,7 +90,9 @@ The industry is realizing that "more models" doesn't mean "better models"
 
 ## Credits & Philosophy
 This fork builds upon the excellent foundation laid by sklearn-diagnose by leockl.
+
 I believe in:
+
 • Standing on the shoulders of giants - Great tools deserve to be enhanced
 
 • Open source collaboration - The best tools are built by communities
