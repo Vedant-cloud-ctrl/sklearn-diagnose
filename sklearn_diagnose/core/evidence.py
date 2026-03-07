@@ -71,7 +71,8 @@ def validate_estimator(estimator: BaseEstimator) -> ValidationResult:
 
 def validate_datasets(
     datasets: Dict[str, Tuple[np.ndarray, np.ndarray]],
-    cv_results: Optional[Dict[str, Any]] = None
+    cv_results: Optional[Dict[str, Any]] = None, 
+    suppress_warnings: bool = False
 ) -> ValidationResult:
     """
     Validate dataset integrity and check for potential issues.
@@ -145,7 +146,7 @@ def validate_datasets(
     has_val = "val" in datasets and datasets["val"][0] is not None
     has_cv = cv_results is not None
     
-    if not has_val and not has_cv:
+    if not has_val and not has_cv and not suppress_warnings:
         warnings_list.append(
             "No validation set or CV results provided. "
             "Diagnosis will be limited to training data analysis only."
@@ -245,7 +246,8 @@ def collect_evidence(
     estimator: BaseEstimator,
     datasets: Dict[str, Tuple[np.ndarray, np.ndarray]],
     task: Union[str, TaskType],
-    cv_results: Optional[Dict[str, Any]] = None
+    cv_results: Optional[Dict[str, Any]] = None, 
+    suppress_warnings: bool = False
 ) -> Evidence:
     """
     Collect all evidence needed for diagnosis.
@@ -272,7 +274,7 @@ def collect_evidence(
     est_validation = validate_estimator(estimator)
     est_validation.raise_if_invalid()
     
-    data_validation = validate_datasets(datasets, cv_results)
+    data_validation = validate_datasets(datasets, cv_results, suppress_warnings)
     data_validation.raise_if_invalid()
     
     if cv_results is not None:
