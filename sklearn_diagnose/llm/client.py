@@ -480,7 +480,7 @@ class OpenRouterClient(LangChainClient):
             **kwargs
         )
 
-class GroqClietn(LangChainClient): 
+class GroqClient(LangChainClient): 
 
     def __init__(self, model: str, api_key: Optional[str] = None, ** kwargs):
         super().__init__(
@@ -573,7 +573,7 @@ def setup_llm(
     elif provider_lower == "openrouter":
         _global_client = OpenRouterClient(model=model, api_key=api_key, **kwargs)
     elif provider_lower == "groq": 
-        _gloabl_client = GroqClietn(model=model, api_key=api_key, **kwargs)
+        _global_client = GroqClient(model=model, api_key=api_key, **kwargs)
     else:
         # Generic LangChain client for other providers
         _global_client = LangChainClient(
