@@ -23,7 +23,7 @@ Call setup_llm() first:
     print(report.summary())
     print(report.recommendations)
 """
-
+import warnings 
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
@@ -52,6 +52,7 @@ def diagnose(
     datasets: Dict[str, Tuple[np.ndarray, np.ndarray]],
     task: Union[str, TaskType],
     cv_results: Optional[Dict[str, Any]] = None,
+    suppress_warnings=False,
     max_recommendations: int = 5
 ) -> DiagnosisReport:
     """
@@ -170,6 +171,13 @@ def diagnose(
         - setup_llm(): For setting up the required LLM provider
         - DiagnosisReport: For understanding the report structure
     """
+
+    if cv_results is None and not suppress_warnings: 
+        warnings.warn(
+            "CV not provided. Some signals limited.", 
+            UserWarning
+        )
+
     # Verify LLM is configured (fail fast)
     if _get_global_client() is None:
         raise RuntimeError(

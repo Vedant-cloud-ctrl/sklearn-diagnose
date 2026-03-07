@@ -45,6 +45,7 @@ __all__ = [
     "OpenAIClient",
     "AnthropicClient",
     "OpenRouterClient",
+    "GroqClient", 
     # Configuration
     "setup_llm",
     # Generation functions

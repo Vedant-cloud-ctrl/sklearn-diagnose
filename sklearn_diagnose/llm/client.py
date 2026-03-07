@@ -182,7 +182,7 @@ class LangChainClient(LLMClient):
         Initialize the LangChain client.
         
         Args:
-            provider: One of "openai", "anthropic", "openrouter"
+            provider: One of "openai", "anthropic", "openrouter", "groq" 
             model: The model name/identifier
             api_key: API key (optional if set in environment)
             base_url: Custom base URL (used for OpenRouter)
@@ -228,11 +228,19 @@ class LangChainClient(LLMClient):
                 base_url=self.base_url or "https://openrouter.ai/api/v1",
                 **self.kwargs
             )
-        
+
+        elif self.provider == "groq": 
+            from langchain_groq import ChatGroq
+            return ChatGroq(
+                model=self.model_name, 
+                api_key=self.api_key or os.environ.get("GROQ_API_KEY"), 
+                **self.kwargs
+            )
+               
         else:
             raise ValueError(
                 f"Unknown provider: {self.provider}. "
-                "Use 'openai', 'anthropic', or 'openrouter'."
+                "Use 'openai', 'anthropic', 'openrouter', or 'groq'."
             )
     
     def _invoke_agent(
@@ -472,6 +480,16 @@ class OpenRouterClient(LangChainClient):
             **kwargs
         )
 
+class GroqClietn(LangChainClient): 
+
+    def __init__(self, model: str, api_key: Optional[str] = None, ** kwargs):
+        super().__init__(
+            provider="groq", 
+            model=model, 
+            api_key=api_key, 
+            **kwargs
+        ) 
+
 
 # =============================================================================
 # GLOBAL CLIENT MANAGEMENT
@@ -513,6 +531,7 @@ def setup_llm(
             - OpenAI: "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini"
             - Anthropic: "claude-3-5-sonnet-latest", "claude-3-haiku-20240307"
             - OpenRouter: "deepseek/deepseek-r1-0528", "openai/gpt-4o"
+            - Groq: "llama3-70b-8192", "llama3-8b-8192"
         api_key: API key for the provider. If not provided, will look for:
             - OpenAI: OPENAI_API_KEY environment variable
             - Anthropic: ANTHROPIC_API_KEY environment variable
@@ -553,6 +572,8 @@ def setup_llm(
         _global_client = AnthropicClient(model=model, api_key=api_key, **kwargs)
     elif provider_lower == "openrouter":
         _global_client = OpenRouterClient(model=model, api_key=api_key, **kwargs)
+    elif provider_lower == "groq": 
+        _gloabl_client = GroqClietn(model=model, api_key=api_key, **kwargs)
     else:
         # Generic LangChain client for other providers
         _global_client = LangChainClient(
