@@ -1,55 +1,41 @@
-# sklearn-diagnose
+# sklearn-diagnose 
 
-**An intelligent diagnosis layer for scikit-learn: evidence-based model failure detection with LLM-powered summaries.**
+An intelligent diagnostic and recommendation engine for `scikit-learn` models. This fork optimizes the original library by integrating the **Groq API** for near-instant inference and cleaning up redundant console noise for a better developer experience.
 
-[![PyPI version](https://img.shields.io/pypi/v/sklearn-diagnose.svg)](https://pypi.org/project/sklearn-diagnose/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# Key Features
+• Model Failure Diagnosis: Detect overfitting, underfitting, high variance, label noise, feature redundancy, class imbalance, and data leakage symptoms
+• Interactive Chatbot: Launch a web-based chatbot to have conversations about your diagnosis results
+• Cross-Validation Interpretation: CV interpretation is a core signal extractor within sklearn-diagnose, used to detect instability, overfitting, and potential data leakage
+• Evidence-Based Hypotheses: All diagnoses include confidence scores and supporting evidence
+• Actionable Recommendations: Get specific suggestions to fix identified issues
+• Read-Only Behavior: Never modifies your estimator, parameters, or data
+• Universal Compatibility: Works with any fitted scikit-learn estimator or Pipeline
 
-## Philosophy
+## Why this Fork?
 
-> **This library uses LLM-powered analysis for model diagnosis. All hypotheses are probabilistic and evidence-based.**
+When I discovered sklearn-diagnose, a genuinely innovative approach to model analysis that the ML community desperately needs. Here's why this project caught my attention:
+The Problem It Solves
+Every data scientist has been there: you train a model, check the accuracy, maybe look at a confusion matrix, and then... what? You know something's wrong, but pinpointing exactly what and how to fix it requires hours of manual investigation. You're checking metrics, plotting distributions, running statistical tests, comparing train/test splits - all while trying to remember which patterns indicate which problems.
+sklearn-diagnose changes this entirely. Instead of you being the detective, the LLM becomes your expert consultant, analyzing all the signals simultaneously and giving you human-readable insights with actionable recommendations.
 
-sklearn-diagnose acts as an "MRI scanner" for your machine learning models — it diagnoses problems but never modifies your models. The library follows an **evidence-first, LLM-powered** approach:
-
-1. **Signal Extractors**: Compute deterministic statistics from your model and data
-2. **LLM Hypothesis Generation**: Detect failure modes with confidence scores and severity
-3. **LLM Recommendation Generation**: Generate actionable recommendations based on detected issues
-4. **LLM Summary Generation**: Create human-readable summaries
-
-## Key Features
-
-- **Model Failure Diagnosis**: Detect overfitting, underfitting, high variance, label noise, feature redundancy, class imbalance, and data leakage symptoms
-- **Interactive Chatbot**: Launch a web-based chatbot to have conversations about your diagnosis results
-- **Cross-Validation Interpretation**: CV interpretation is a core signal extractor within sklearn-diagnose, used to detect instability, overfitting, and potential data leakage
-- **Evidence-Based Hypotheses**: All diagnoses include confidence scores and supporting evidence
-- **Actionable Recommendations**: Get specific suggestions to fix identified issues
-- **Read-Only Behavior**: Never modifies your estimator, parameters, or data
-- **Universal Compatibility**: Works with any fitted scikit-learn estimator or Pipeline
-
-## Installation
-
-```bash
-pip install sklearn-diagnose
-```
-
-This installs sklearn-diagnose with all required dependencies including:
-- **LangChain** (v1.2.0+) for AI agent capabilities
-- **langchain-openai** for OpenAI model support
-- **langchain-anthropic** for Anthropic model support
-- **python-dotenv** for environment variable management
-
-### Interactive Chatbot Included
-
-The interactive chatbot feature is included by default! When you install sklearn-diagnose, you get:
-- **FastAPI** for the web server
-- **Uvicorn** for running the server
-- **python-multipart** for form handling
-- **Bundled React frontend** - no Node.js or npm required!
 
 ## Quick Start
 
-```python
+### 1. Installation
+Clone this fork and install it in editable mode:
+```bash
+git clone [https://github.com/YOUR_USERNAME/sklearn-diagnose.git](https://github.com/YOUR_USERNAME/sklearn-diagnose.git)
+cd sklearn-diagnose
+pip install -e .
+```
+### 2. Configure Groq
+Ensure your API key is set in your environment variables:
+```bash
+export GROQ_API_KEY='your_lp_api_key_here'
+```
+
+### Usage 
+```bash
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn_diagnose import setup_llm, diagnose
@@ -86,493 +72,23 @@ print(report.hypotheses)         # Detected issues with confidence
 print(report.recommendations)    # LLM-ranked actionable suggestions
 ```
 
-### With a Pipeline
-
-```python
-import os
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn_diagnose import setup_llm, diagnose
-
-# Set up LLM (required - do this once at startup)
-os.environ["OPENAI_API_KEY"] = "your-key"
-setup_llm(provider="openai", model="gpt-4o")  # api_key optional when env var set
-
-# Build your pipeline
-preprocessor = ColumnTransformer([
-    ("num", StandardScaler(), numerical_cols),
-])
-
-pipeline = Pipeline([
-    ("preprocess", preprocessor),
-    ("model", LogisticRegression())
-])
-pipeline.fit(X_train, y_train)
-
-# Diagnose works with any estimator
-report = diagnose(
-    estimator=pipeline,
-    datasets={
-        "train": (X_train, y_train),
-        "val": (X_val, y_val)
-    },
-    task="classification"
-)
-```
-
-### With Cross-Validation Results
-
-```python
-from sklearn.model_selection import cross_validate
-
-# Run cross-validation
-cv_results = cross_validate(
-    model, X_train, y_train,
-    cv=5,
-    return_train_score=True,
-    scoring='accuracy'
-)
-
-# Diagnose with CV evidence (no holdout set needed)
-report = diagnose(
-    estimator=model,
-    datasets={
-        "train": (X_train, y_train)
-    },
-    task="classification",
-    cv_results=cv_results
-)
-```
-
-### Interactive Chatbot
-
-<img width="1915" height="965" alt="Screenshot 2026-01-31 091551" src="https://github.com/user-attachments/assets/6b557cec-0d6e-4bda-b2b6-f876b0c6f98d" />
-
-Launch an interactive web-based chatbot to explore your diagnosis results through natural conversation with an LLM.
-
-#### Features
-
-- **Interactive Q&A**: Ask questions about your diagnosis results in natural language
-- **Full Context**: The chatbot has complete access to all detected issues, recommendations, and model signals
-- **Code Examples**: Get implementation help with ready-to-use code snippets
-- **Conversation History**: Maintains context throughout your session
-- **Markdown Rendering**: Formatted responses with syntax highlighting
-- **Responsive UI**: Modern React interface with Tailwind CSS
-
-The chatbot dependencies (FastAPI, Uvicorn, python-multipart) are included by default. **The React frontend is bundled** - no Node.js or npm required!
-
-#### Usage
-
-**Just ONE terminal, ONE Python script:**
-
-```python
-from sklearn_diagnose import setup_llm, diagnose, launch_chatbot
-
-# 1. Configure LLM
-setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
-
-# 2. Diagnose your model
-report = diagnose(
-    estimator=model,
-    datasets={"train": (X_train, y_train), "val": (X_val, y_val)},
-    task="classification"
-)
-
-# 3. Launch chatbot (opens browser automatically)
-launch_chatbot(report)
-```
-
-That's it! The browser opens automatically to **http://localhost:8000** and you can start chatting.
-
-Works on both Windows and Mac/Linux - no platform-specific setup needed!
-
-#### Complete Example
-
-Run the provided example script:
-
-```bash
-# On Windows
-python tests/example_diagnose.py
-
-# On Mac/Linux
-python3 tests/example_diagnose.py
-```
-
-This will:
-1. Generate synthetic test data with deliberate issues
-2. Train a model
-3. Run diagnosis
-4. Launch the chatbot automatically
-
-#### Example Questions
-
-Once the chatbot is running, try asking:
-
-- "What are the main issues with my model?"
-- "How do I fix the class imbalance?"
-- "Show me code to implement your first recommendation"
-- "Why is feature redundancy a problem?"
-- "What causes overfitting in my case?"
-- "How do I tune the decision threshold?"
-
-#### Chatbot Architecture
-
-```
-Browser (http://localhost:8000)
-         ↓
-FastAPI Server (serves both frontend & API)
-  ├── /assets/*     → Static files (JS, CSS)
-  ├── /api/*        → REST API endpoints
-  └── /*            → React frontend (SPA)
-         ↓
-ChatAgent (maintains conversation history)
-         ↓
-LLM Client (OpenAI/Anthropic/OpenRouter)
-```
-
-#### Troubleshooting
-
-**Chat responses not working:**
-- Verify you called `setup_llm()` before `diagnose()`
-- Check your API key is valid in `.env` file or environment variables
-
-**Port already in use:**
-- Default port is 8000
-- Change if needed: `launch_chatbot(report, port=9000)`
-
-**Browser doesn't open automatically:**
-- Manually navigate to http://localhost:8000
-
-**"Frontend not built" error:**
-- This shouldn't happen with pip install
-- If developing from source, run: `cd frontend && npm run build`
-
-#### Customization
-
-Configure the chatbot server:
-
-```python
-launch_chatbot(
-    report,
-    host="127.0.0.1",       # Server host
-    port=8000,               # Server port
-    auto_open_browser=True   # Auto-open browser
-)
-```
-
-## Detected Failure Modes
-
-| Failure Mode | What It Detects | Key Signals |
-|--------------|-----------------|-------------|
-| **Overfitting** | Model memorizes training data | High train score, low val score, large gap |
-| **Underfitting** | Model too simple for data | Low train and val scores |
-| **High Variance** | Unstable across data splits | High CV fold variance, inconsistent predictions |
-| **Label Noise** | Incorrect/noisy target labels | Ceilinged train score, scattered residuals |
-| **Feature Redundancy** | Correlated/duplicate features | Detailed correlated pair list with correlation values |
-| **Class Imbalance** | Skewed class distribution | Class distribution, per-class recall/precision, recall disparity |
-| **Data Leakage** | Information from future/val in train | CV-to-holdout gap, suspicious feature-target correlations |
-
-## Output Format
-
-```python
-report = diagnose(...)
-
-# Human-readable summary (includes both diagnosis and recommendations)
-report.summary()
-# "## Diagnosis
-#  Based on the analysis, here are the key findings:
-#  - **Overfitting** (95% confidence, high severity)
-#    - Train-val gap of 25.3% indicates overfitting
-#  - **Feature Redundancy** (90% confidence, high severity)
-#    - 4 highly correlated feature pairs detected (max correlation: 99.9%)
-#    - Correlated feature pairs:
-#    -   - Feature 0 ↔ Feature 10: 99.9% correlation
-#    -   - Feature 1 ↔ Feature 11: 99.8% correlation
-#  
-#  ## Recommendations
-#  **1. Increase regularization strength**
-#     Stronger regularization penalizes model complexity..."
-
-# Structured hypotheses with confidence scores
-report.hypotheses
-# [
-#   Hypothesis(name=FailureMode.OVERFITTING, confidence=0.85, 
-#              evidence=['Train-val gap of 23.0% is severe'], severity='high'),
-#   Hypothesis(name=FailureMode.FEATURE_REDUNDANCY, confidence=0.90,
-#              evidence=['4 highly correlated pairs detected',
-#                        'Correlated feature pairs:',
-#                        '  - Feature 0 ↔ Feature 10: 99.9% correlation',
-#                        '  - Feature 1 ↔ Feature 11: 99.8% correlation'],
-#              severity='high')
-# ]
-
-# Access hypothesis details
-h = report.hypotheses[0]
-h.name.value        # 'overfitting' (string)
-h.confidence        # 0.85
-h.evidence          # ['Train-val gap of 23.0% is severe']
-h.severity          # 'high'
-
-# Actionable recommendations (Recommendation objects)
-report.recommendations
-# [
-#   Recommendation(action='Increase regularization strength', 
-#                  rationale='Stronger regularization penalizes...',
-#                  related_hypothesis=FailureMode.OVERFITTING),
-#   Recommendation(action='Reduce model complexity', 
-#                  rationale='Simpler models generalize better...',
-#                  related_hypothesis=FailureMode.OVERFITTING)
-# ]
-
-# Access recommendation details
-r = report.recommendations[0]
-r.action              # 'Increase regularization strength'
-r.rationale           # 'Stronger regularization penalizes...'
-r.related_hypothesis  # FailureMode.OVERFITTING
-
-# Raw signals (Signals object with attribute access)
-report.signals.train_score      # 0.94
-report.signals.val_score        # 0.71
-report.signals.cv_mean          # 0.73 (if CV provided)
-report.signals.cv_std           # 0.12 (if CV provided)
-report.signals.to_dict()        # Convert to dict for serialization
-```
-
-## Design Principles
-
-### Evidence-Based Diagnosis
-
-Every hypothesis is backed by quantitative evidence. The LLM analyzes deterministic signals and generates hypotheses with confidence scores
-
-### Confidence Scoring & Guardrails
-
-- All hypotheses include explicit confidence scores (0.0 - 1.0)
-- "Insufficient evidence" responses when signals are ambiguous
-- Uncertainty is communicated clearly, never hidden
-- No model changes are suggested automatically
-
-### Read-Only Guarantee
-
-sklearn-diagnose **never**:
-- Calls `.fit()` on your estimator
-- Modifies estimator parameters
-- Mutates your training data
-- Refits or retrains models
-
-### Validation Set vs Cross-Validation
-
-sklearn-diagnose follows strict rules:
-
-1. **`y_val` is OPTIONAL** — You can diagnose with only training data + CV results
-2. **CV evidence overrides holdout logic** — When both present, CV provides richer signals
-3. **Never mix the two** — Holdout and CV answer different questions
-
-## API Reference
-
-### `diagnose()`
-
-Main entry point for model diagnosis.
-
-```python
-def diagnose(
-    estimator,              # Any fitted sklearn estimator or Pipeline
-    datasets: dict,         # {"train": (X, y), "val": (X, y)} - val is optional
-    task: str,              # "classification" or "regression"
-    cv_results: dict = None # Output from cross_validate() - optional
-) -> DiagnosisReport:
-```
-
-**Parameters:**
-
-- `estimator`: A fitted scikit-learn estimator or Pipeline. Must already be fitted.
-- `datasets`: Dictionary with "train" key required, "val" key optional. Each value is a tuple of (X, y).
-- `task`: Either "classification" or "regression"
-- `cv_results`: Optional dictionary from `sklearn.model_selection.cross_validate()`
-
-**Returns:**
-
-`DiagnosisReport` object with:
-- `.hypotheses`: List of detected issues with confidence scores
-- `.recommendations`: List of actionable fix suggestions (LLM-ranked)
-- `.signals`: Raw computed statistics
-- `.summary()`: Human-readable summary (LLM-generated)
-
-## Configuration
-
-### LLM Backend (Required)
-
-sklearn-diagnose uses **LangChain** under the hood for LLM integration. Each diagnosis involves three AI agents:
-- **Hypothesis Agent**: Analyzes signals and detects failure modes
-- **Recommendation Agent**: Generates actionable fix suggestions  
-- **Summary Agent**: Creates human-readable summaries
-
-```python
-from sklearn_diagnose import setup_llm
-
-# Using OpenAI
-setup_llm(provider="openai", model="gpt-4o", api_key="sk-...")
-
-# Using Anthropic
-setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest", api_key="sk-ant-...")
-
-# Using OpenRouter (access to many models)
-setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="sk-or-...")
-```
-
-### Using Environment Variables
-
-You can set API keys via environment variables in two ways:
-
-**Option 1: Set programmatically in Python**
-
-```python
-import os
-from sklearn_diagnose import setup_llm
-
-# Set environment variable in your code
-os.environ["OPENAI_API_KEY"] = "sk-..."
-setup_llm(provider="openai", model="gpt-4o")  # api_key is automatically loaded
-
-# Or for Anthropic
-os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
-setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest")
-
-# Or for OpenRouter
-os.environ["OPENROUTER_API_KEY"] = "sk-or-..."
-setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528")
-```
-
-**Option 2: Use a `.env` file (recommended for production)**
-
-Create a `.env` file in your project root:
-
-```bash
-# .env file
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-OPENROUTER_API_KEY=sk-or-...
-```
-
-The library uses `python-dotenv` internally to automatically load the `.env` file (no need to import or call load_dotenv() yourself):
-
-```python
-from sklearn_diagnose import setup_llm
-
-# API keys are automatically loaded from .env file
-setup_llm(provider="openai", model="gpt-4o")
-setup_llm(provider="anthropic", model="claude-3-5-sonnet-latest")
-setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528")
-```
-
-## Architecture
-
-```
-sklearn-diagnose/                 # Project root
-├── sklearn_diagnose/             # Main package
-│   ├── __init__.py               # Package exports (setup_llm, diagnose, launch_chatbot, types)
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── diagnose.py           # Main diagnose() function
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── schemas.py            # Data structures (Evidence, Signals, Hypothesis, etc.)
-│   │   ├── evidence.py           # Input validation, read-only guarantees
-│   │   ├── signals.py            # Signal extraction (deterministic metrics)
-│   │   ├── hypotheses.py         # Rule-based hypotheses (fallback/reference)
-│   │   └── recommendations.py    # Example recommendation templates for LLM guidance
-│   ├── llm/
-│   │   ├── __init__.py           # Exports setup_llm and LLM utilities
-│   │   └── client.py             # LangChain-based AI agents (hypothesis, recommendation, summary)
-│   ├── server/                   # Chatbot backend (NEW)
-│   │   ├── __init__.py
-│   │   ├── app.py                # FastAPI application with CORS and routes
-│   │   └── chat_agent.py         # ChatAgent for conversation management
-│   └── chatbot.py                # Chatbot launcher function
-├── frontend/                     # React chatbot UI (NEW)
-│   ├── src/
-│   │   ├── components/           # React components (Header, ChatInterface, etc.)
-│   │   ├── hooks/                # Custom hooks (useChat)
-│   │   ├── services/             # API client
-│   │   ├── App.jsx               # Main React app
-│   │   ├── main.jsx              # React entry point
-│   │   └── index.css             # Global styles with Tailwind
-│   ├── package.json              # Node dependencies
-│   ├── vite.config.js            # Vite configuration with API proxy
-│   ├── tailwind.config.js        # Tailwind CSS config
-│   └── index.html                # HTML entry point
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py               # Pytest fixtures and MockLLMClient for testing
-│   ├── unit_test_diagnose.py     # Comprehensive test suite (includes chatbot tests)
-│   └── example_diagnose.py       # Example script demonstrating full workflow with chatbot
-├── .github/
-│   └── workflows/
-│       └── tests.yml             # GitHub Actions CI (runs tests on push/PR)
-├── .env.example                  # Template for API keys (copy to .env)
-├── .gitignore
-├── AGENTS.md                     # AI agents architecture documentation
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── LICENSE
-├── MANIFEST.in
-├── README.md
-└── pyproject.toml
-```
-
-### Processing Flow
-
-```
-User Input (model, data, task)
-         │
-         ▼
-┌─────────────────────────────┐
-│  1. Signal Extraction       │  Deterministic metrics
-│     (signals.py)            │  (train_score, val_score, cv_std, etc.)
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│  2. Hypothesis Agent        │  Failure modes with confidence & severity
-│     (LangChain create_agent)│  (overfitting: 95%, high severity)
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│  3. Recommendation Agent    │  Actionable recommendations
-│     (LangChain create_agent)│  (guided by example templates)
-└─────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────┐
-│  4. Summary Agent           │  Human-readable summary
-│     (LangChain create_agent)│
-└─────────────────────────────┘
-         │
-         ▼
-    DiagnosisReport
-```
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Citation
-
-If you use sklearn-diagnose in your research, please cite:
-
-```bibtex
-@software{sklearn_diagnose,
-  title = {sklearn-diagnose: Evidence-based model failure diagnosis for scikit-learn},
-  year = {2025},
-  url = {https://github.com/leockl/sklearn-diagnose}
-}
-```
-
----
-
-Please give my GitHub repo a ⭐ if this was helpful. Thank you! 🙏
+## Why This Package Deserves More Attention
+It's Solving a Universal Problem
+Every data scientist spends hours debugging models. If sklearn-diagnose saves even 30 minutes per model, across thousands of data scientists globally, that's millions of hours saved.
+The Timing Is Perfect
+
+LLMs are now cheap/fast enough for this use case
+ML is becoming more democratized (more people need guidance)
+MLOps is maturing (automated quality checks are expected)
+The industry is realizing that "more models" doesn't mean "better models"
+
+## Credits & Philosophy
+This fork builds upon the excellent foundation laid by sklearn-diagnose by leockl.
+I believe in:
+• Standing on the shoulders of giants - Great tools deserve to be enhanced
+• Open source collaboration - The best tools are built by communities
+• Accessible ML - Everyone should have access to expert-level model diagnosis
+• Practical innovation - Features should solve real problems, not just be technically impressive
+
+##  License
+MIT License - Same as original sklearn-diagnose
