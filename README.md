@@ -4,11 +4,17 @@ An intelligent diagnostic and recommendation engine for `scikit-learn` models. T
 
 # Key Features
 • Model Failure Diagnosis: Detect overfitting, underfitting, high variance, label noise, feature redundancy, class imbalance, and data leakage symptoms
+
 • Interactive Chatbot: Launch a web-based chatbot to have conversations about your diagnosis results
+
 • Cross-Validation Interpretation: CV interpretation is a core signal extractor within sklearn-diagnose, used to detect instability, overfitting, and potential data leakage
+
 • Evidence-Based Hypotheses: All diagnoses include confidence scores and supporting evidence
+
 • Actionable Recommendations: Get specific suggestions to fix identified issues
+
 • Read-Only Behavior: Never modifies your estimator, parameters, or data
+
 • Universal Compatibility: Works with any fitted scikit-learn estimator or Pipeline
 
 ## Why this Fork?
@@ -86,8 +92,11 @@ The industry is realizing that "more models" doesn't mean "better models"
 This fork builds upon the excellent foundation laid by sklearn-diagnose by leockl.
 I believe in:
 • Standing on the shoulders of giants - Great tools deserve to be enhanced
+
 • Open source collaboration - The best tools are built by communities
+
 • Accessible ML - Everyone should have access to expert-level model diagnosis
+
 • Practical innovation - Features should solve real problems, not just be technically impressive
 
 ##  License
