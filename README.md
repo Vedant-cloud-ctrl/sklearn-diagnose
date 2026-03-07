@@ -2,7 +2,7 @@
 
 An intelligent diagnostic and recommendation engine for `scikit-learn` models. This fork optimizes the original library by integrating the **Groq API** for near-instant inference and cleaning up redundant console noise for a better developer experience.
 
-# Key Features
+## Key Features
 • Model Failure Diagnosis: Detect overfitting, underfitting, high variance, label noise, feature redundancy, class imbalance, and data leakage symptoms
 
 • Interactive Chatbot: Launch a web-based chatbot to have conversations about your diagnosis results
