@@ -13,8 +13,6 @@ To make the tool even more accessible and production-ready, I’ve implemented t
 * **Groq API Integration:** Added support for Groq to leverage lightning-fast inference, making the diagnostic feedback near-instant.
 * **Streamlined Output:** Removed redundant and distracting CV (Cross-Validation) error messages to ensure the final report stays focused on actionable insights rather than console noise.
 
----
-
 ## Installation
 
 To get started with this fork, follow the steps below to set up your environment and configure the **Groq API** for high-speed diagnostics.
