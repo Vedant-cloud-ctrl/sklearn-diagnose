@@ -1,28 +1,30 @@
-# sklearn-diagnose 
+## Why This Fork?
 
-An intelligent diagnostic and recommendation engine for `scikit-learn` models. This fork optimizes the original library by integrating the **Groq API** for near-instant inference and cleaning up redundant console noise for a better developer experience.
+When I discovered **sklearn-diagnose**, I saw a genuinely innovative approach to model analysis that the ML community desperately needs. However, I noticed a few areas where the developer experience could be tightened for better real-world utility. Here is why this project caught my attention and what I've improved:
 
-## Key Features
-• Model Failure Diagnosis: Detect overfitting, underfitting, high variance, label noise, feature redundancy, class imbalance, and data leakage symptoms
+### The Problem: The "Insight Gap"
+Every data scientist has been there: you train a model, check the accuracy, glance at a confusion matrix, and then—**what?** You know something is wrong, but pinpointing the "why" and "how" requires hours of manual investigation. You’re often stuck in a loop of checking metrics and running statistical tests, trying to decode which specific patterns indicate model failure.
 
-• Interactive Chatbot: Launch a web-based chatbot to have conversations about your diagnosis results
+### The Solution: From Detective to Consultant
+**sklearn-diagnose** fundamentally changes this paradigm. Instead of forcing you to play detective, it positions an **LLM as an expert consultant**. It analyzes all diagnostic signals simultaneously to provide human-readable insights and actionable recommendations—turning a "blank stare" into a clear roadmap for model improvement.
 
-• Cross-Validation Interpretation: CV interpretation is a core signal extractor within sklearn-diagnose, used to detect instability, overfitting, and potential data leakage
+### My Enhancements
+To make the tool even more accessible and production-ready, I’ve implemented two key changes:
+* **Groq API Integration:** Added support for Groq to leverage lightning-fast inference, making the diagnostic feedback near-instant.
+* **Streamlined Output:** Removed redundant and distracting CV (Cross-Validation) error messages to ensure the final report stays focused on actionable insights rather than console noise.
 
-• Evidence-Based Hypotheses: All diagnoses include confidence scores and supporting evidence
+---
 
-• Actionable Recommendations: Get specific suggestions to fix identified issues
+## Installation
 
-• Read-Only Behavior: Never modifies your estimator, parameters, or data
+To get started with this fork, follow the steps below to set up your environment and configure the **Groq API** for high-speed diagnostics.
 
-• Universal Compatibility: Works with any fitted scikit-learn estimator or Pipeline
-
-## Why this Fork?
-
-When I discovered sklearn-diagnose, a genuinely innovative approach to model analysis that the ML community desperately needs. Here's why this project caught my attention:
-The Problem It Solves
-Every data scientist has been there: you train a model, check the accuracy, maybe look at a confusion matrix, and then... what? You know something's wrong, but pinpointing exactly what and how to fix it requires hours of manual investigation. You're checking metrics, plotting distributions, running statistical tests, comparing train/test splits - all while trying to remember which patterns indicate which problems.
-sklearn-diagnose changes this entirely. Instead of you being the detective, the LLM becomes your expert consultant, analyzing all the signals simultaneously and giving you human-readable insights with actionable recommendations.
+### 1. Install the Package
+Clone the repository and install the dependencies:
+```bash
+git clone [https://github.com/](https://github.com/)[your-username]/sklearn-diagnose.git
+cd sklearn-diagnose
+pip install -r requirements.txt
 
 
 ## Quick Start
@@ -37,7 +39,7 @@ pip install -e .
 ### 2. Configure Groq
 Ensure your API key is set in your environment variables:
 ```bash
-export GROQ_API_KEY='your_lp_api_key_here'
+export GROQ_API_KEY='your_api_key_here'
 ```
 
 ### Usage 
@@ -48,7 +50,6 @@ from sklearn_diagnose import setup_llm, diagnose
 
 # Set up LLM (REQUIRED - must specify provider, model, and api_key)
 # Using OpenAI:
-setup_llm(provider="openai", model="gpt-4o", api_key="your-openai-key")
 # setup_llm(provider="openai", model="gpt-4o-mini", api_key="your-openai-key")
 
 # Or using Anthropic:
@@ -56,6 +57,9 @@ setup_llm(provider="openai", model="gpt-4o", api_key="your-openai-key")
 
 # Or using OpenRouter (access to many models):
 # setup_llm(provider="openrouter", model="deepseek/deepseek-r1-0528", api_key="your-openrouter-key")
+
+# Or using Groq (access to many models):
+# setup_llm(provider="groq", model="llama-3.3-70b-versatile", api_key="your-groq-key")
 
 # Your existing sklearn workflow
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
@@ -78,28 +82,9 @@ print(report.hypotheses)         # Detected issues with confidence
 print(report.recommendations)    # LLM-ranked actionable suggestions
 ```
 
-## Why This Package Deserves More Attention
-It's Solving a Universal Problem
-Every data scientist spends hours debugging models. If sklearn-diagnose saves even 30 minutes per model, across thousands of data scientists globally, that's millions of hours saved.
-The Timing Is Perfect
-
-LLMs are now cheap/fast enough for this use case
-ML is becoming more democratized (more people need guidance)
-MLOps is maturing (automated quality checks are expected)
-The industry is realizing that "more models" doesn't mean "better models"
-
 ## Credits & Philosophy
+This project is a fork of the original [sklearn-diagnose](https://github.com/leockl/sklearn-diagnose) developed by **[leockl](https://github.com/leockl)**.
 This fork builds upon the excellent foundation laid by sklearn-diagnose by leockl.
-
-I believe in:
-
-• Standing on the shoulders of giants - Great tools deserve to be enhanced
-
-• Open source collaboration - The best tools are built by communities
-
-• Accessible ML - Everyone should have access to expert-level model diagnosis
-
-• Practical innovation - Features should solve real problems, not just be technically impressive
 
 ##  License
 MIT License - Same as original sklearn-diagnose
