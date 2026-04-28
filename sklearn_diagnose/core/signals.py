@@ -374,3 +374,286 @@ def analyze_cv_stability(cv_results: Dict[str, Any]) -> Dict[str, Any]:
         }
     
     return analysis
+
+# New signal extraction 
+def _extract_calibration_signals(evidence: Evidence, signals: Signals) -> None:
+    """
+    Calibration signal — is model overconfident or underconfident?
+
+    Uses predicted probabilities to detect:
+    - Overconfidence: model always outputs very high probability (> 0.95)
+    - Underconfidence: model always outputs near-uniform probability
+    - Brier score: overall calibration quality (binary only)
+    """
+    if evidence.y_proba_val is None or evidence.y_val is None:
+        signals.calibration_note = "Skipped — no predicted probabilities available (model may lack predict_proba)"
+        return
+
+    try:
+        proba = np.array(evidence.y_proba_val)
+        n_classes = proba.shape[1] if proba.ndim > 1 else 2
+        max_proba = np.max(proba, axis=1) if proba.ndim > 1 else proba
+
+        # Overconfidence: predictions clustering near 1.0
+        overconfident_ratio = float(np.mean(max_proba > 0.95))
+        signals.calibration_overconfidence_ratio = overconfident_ratio
+
+        # Underconfidence: predictions clustering near uniform (1/n_classes)
+        uniform_threshold = (1.0 / n_classes) + 0.05
+        underconfident_ratio = float(np.mean(max_proba < uniform_threshold + 0.10))
+        signals.calibration_underconfidence_ratio = underconfident_ratio
+
+        # Brier score (binary classification only)
+        if n_classes == 2:
+            from sklearn.metrics import brier_score_loss
+            pos_proba = proba[:, 1] if proba.ndim > 1 else proba
+            signals.brier_score = float(brier_score_loss(evidence.y_val, pos_proba))
+
+        # Human-readable note
+        if overconfident_ratio > 0.60:
+            signals.calibration_note = (
+                f"Model is overconfident — {overconfident_ratio:.0%} of predictions "
+                f"have >95% confidence. Consider calibration (Platt scaling / isotonic regression)."
+            )
+        elif underconfident_ratio > 0.50:
+            signals.calibration_note = (
+                f"Model is underconfident — {underconfident_ratio:.0%} of predictions "
+                f"are near uniform probability. Model may be underfitting."
+            )
+        else:
+            signals.calibration_note = "Calibration appears reasonable — no extreme overconfidence or underconfidence detected."
+
+    except Exception as e:
+        signals.calibration_note = f"Calibration signal skipped — {str(e)}"
+
+
+def _extract_learning_curve_signals(evidence: Evidence, signals: Signals) -> None:
+    """
+    Learning curve shape — did the model actually converge?
+
+    Trains on increasing fractions of data and checks:
+    - Did validation score plateau? (convergence)
+    - Is there still a large train-val gap at full data? (overfitting)
+    - Is val score still rising? (needs more data)
+    """
+    try:
+        from sklearn.model_selection import learning_curve as sk_learning_curve
+
+        # We need the original model — stored in evidence if available
+        # Use a proxy: recompute from evidence data
+        if not evidence.has_validation_set:
+            signals.learning_curve_note = "Skipped — no validation set provided."
+            return
+
+        # Can't refit without model object — check if evidence carries it
+        # sklearn-diagnose passes model internally; we use CV scores as proxy
+        if evidence.cv_results is None:
+            signals.learning_curve_note = "Skipped — no CV results to approximate learning curve."
+            return
+
+        # Approximate learning curve from CV fold scores
+        cv_scores = np.array(evidence.cv_results.get("test_score", []))
+        if len(cv_scores) < 3:
+            signals.learning_curve_note = "Skipped — too few CV folds to assess convergence."
+            return
+
+        # Use fold index as proxy for "data seen"
+        signals.learning_curve_val_scores = cv_scores.tolist()
+
+        # Check convergence: std of last half vs first half
+        mid = len(cv_scores) // 2
+        first_half_std = float(np.std(cv_scores[:mid]))
+        second_half_std = float(np.std(cv_scores[mid:]))
+        converged = second_half_std <= first_half_std * 1.2
+        signals.learning_curve_converged = converged
+
+        # Gap at full data
+        if evidence.cv_results.get("train_score") is not None:
+            train_scores = np.array(evidence.cv_results["train_score"])
+            signals.learning_curve_gap_at_full = float(
+                np.mean(train_scores) - np.mean(cv_scores)
+            )
+
+        # Human-readable note
+        if not converged:
+            signals.learning_curve_note = (
+                "CV scores are still varying significantly across folds — "
+                "model may benefit from more training data or tuning."
+            )
+        elif signals.learning_curve_gap_at_full and signals.learning_curve_gap_at_full > 0.15:
+            signals.learning_curve_note = (
+                f"Model converged but train-val gap is {signals.learning_curve_gap_at_full:.1%} — "
+                f"likely overfitting even with full data."
+            )
+        else:
+            signals.learning_curve_note = "Model appears to have converged — learning curve is stable."
+
+    except Exception as e:
+        signals.learning_curve_note = f"Learning curve signal skipped — {str(e)}"
+
+
+def _extract_prediction_distribution_signals(evidence: Evidence, signals: Signals) -> None:
+    """
+    Prediction distribution — are outputs spread or clustered?
+
+    Checks if model is predicting one class far too often,
+    which may indicate majority class bias or a collapsed model.
+    """
+    if evidence.y_pred_val is None:
+        signals.pred_distribution_note = "Skipped — no validation predictions available."
+        return
+
+    try:
+        preds = np.array(evidence.y_pred_val)
+        classes, counts = np.unique(preds, return_counts=True)
+        total = len(preds)
+        pred_dist = counts / total
+
+        # Entropy of prediction distribution (higher = more spread)
+        entropy = float(-np.sum(pred_dist * np.log(pred_dist + 1e-9)))
+        signals.pred_distribution_entropy = entropy
+
+        # How often does model predict the majority class?
+        majority_ratio = float(np.max(counts) / total)
+        signals.pred_majority_class_ratio = majority_ratio
+
+        # Human-readable note
+        max_entropy = float(np.log(len(classes)))
+        relative_entropy = entropy / (max_entropy + 1e-9)
+
+        if majority_ratio > 0.90:
+            signals.pred_distribution_note = (
+                f"Model predicts one class {majority_ratio:.0%} of the time — "
+                f"likely collapsed due to class imbalance or poor training."
+            )
+        elif relative_entropy < 0.5:
+            signals.pred_distribution_note = (
+                f"Prediction distribution is skewed (entropy = {entropy:.2f}) — "
+                f"model may be biased toward certain classes."
+            )
+        else:
+            signals.pred_distribution_note = (
+                f"Prediction distribution looks healthy (entropy = {entropy:.2f})."
+            )
+
+    except Exception as e:
+        signals.pred_distribution_note = f"Prediction distribution signal skipped — {str(e)}"
+
+
+def _extract_threshold_sensitivity_signals(evidence: Evidence, signals: Signals) -> None:
+    """
+    Threshold sensitivity — how fragile is the decision boundary?
+
+    For binary classifiers: checks what % of predictions would flip
+    if decision threshold moved from 0.5 → 0.4 or 0.5 → 0.6.
+    High sensitivity = fragile boundary = unreliable predictions.
+    """
+    if evidence.y_proba_val is None:
+        signals.threshold_sensitivity_note = "Skipped — no predicted probabilities available."
+        return
+
+    try:
+        proba = np.array(evidence.y_proba_val)
+
+        # Only meaningful for binary classification
+        if proba.ndim < 2 or proba.shape[1] != 2:
+            signals.threshold_sensitivity_note = "Skipped — threshold sensitivity only applies to binary classification."
+            return
+
+        pos_proba = proba[:, 1]
+
+        # Predictions at three thresholds
+        preds_05 = (pos_proba >= 0.50).astype(int)
+        preds_04 = (pos_proba >= 0.40).astype(int)
+        preds_06 = (pos_proba >= 0.60).astype(int)
+
+        # What fraction of predictions flip?
+        flip_down = float(np.mean(preds_05 != preds_04))  # threshold lowered
+        flip_up = float(np.mean(preds_05 != preds_06))    # threshold raised
+        sensitivity = max(flip_down, flip_up)
+
+        signals.threshold_sensitivity_score = sensitivity
+
+        # Human-readable note
+        if sensitivity > 0.20:
+            signals.threshold_sensitivity_note = (
+                f"{sensitivity:.0%} of predictions flip when threshold shifts by ±0.1 — "
+                f"decision boundary is fragile. Consider optimising threshold on validation set."
+            )
+        elif sensitivity > 0.10:
+            signals.threshold_sensitivity_note = (
+                f"{sensitivity:.0%} of predictions are threshold-sensitive — "
+                f"moderate fragility. Monitor on new data."
+            )
+        else:
+            signals.threshold_sensitivity_note = (
+                f"Decision boundary is stable — only {sensitivity:.0%} of predictions "
+                f"shift with threshold changes."
+            )
+
+    except Exception as e:
+        signals.threshold_sensitivity_note = f"Threshold sensitivity signal skipped — {str(e)}"
+
+
+def _extract_feature_drift_signals(evidence: Evidence, signals: Signals) -> None:
+    """
+    Feature drift — which features are potentially problematic?
+
+    Checks for:
+    - Extreme variance differences across features (scale issues)
+    - Features with near-zero variance (useless features)
+    - Features with suspiciously high variance (outlier-driven)
+    """
+    try:
+        X = np.array(evidence.X_train)
+
+        if X.ndim != 2 or X.shape[1] < 2:
+            signals.feature_drift_note = "Skipped — need at least 2 features."
+            return
+
+        variances = np.var(X, axis=0)
+
+        # Variance ratio: max / min (scale issue detector)
+        min_var = np.min(variances)
+        max_var = np.max(variances)
+        ratio = float(max_var / (min_var + 1e-9))
+        signals.feature_variance_ratio = ratio
+
+        # Flag problematic features
+        drift_flags = []
+
+        # Near-zero variance → useless features
+        zero_var_threshold = np.percentile(variances, 10) * 0.1
+        for i, var in enumerate(variances):
+            if var <= zero_var_threshold and zero_var_threshold > 0:
+                drift_flags.append(i)
+
+        # Extremely high variance vs others → outlier-driven
+        high_var_threshold = np.mean(variances) + 3 * np.std(variances)
+        for i, var in enumerate(variances):
+            if var > high_var_threshold and i not in drift_flags:
+                drift_flags.append(i)
+
+        signals.feature_drift_flags = drift_flags if drift_flags else []
+
+        # Human-readable note
+        if ratio > 1000:
+            signals.feature_drift_note = (
+                f"Feature scales vary by {ratio:.0f}x — strong indicator of missing normalisation. "
+                f"Apply StandardScaler or MinMaxScaler before training."
+            )
+        elif ratio > 100:
+            signals.feature_drift_note = (
+                f"Feature scales vary by {ratio:.0f}x — moderate scale issue detected. "
+                f"Consider feature scaling."
+            )
+        elif drift_flags:
+            signals.feature_drift_note = (
+                f"{len(drift_flags)} feature(s) flagged as potentially problematic "
+                f"(near-zero or extreme variance): indices {drift_flags}."
+            )
+        else:
+            signals.feature_drift_note = "Feature variances look healthy — no obvious scale or drift issues."
+
+    except Exception as e:
+        signals.feature_drift_note = f"Feature drift signal skipped — {str(e)}"

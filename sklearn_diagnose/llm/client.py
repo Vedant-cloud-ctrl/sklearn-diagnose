@@ -28,39 +28,41 @@ from ..core.schemas import Hypothesis, Recommendation, FailureMode
 # SYSTEM PROMPTS FOR LLM AGENTS
 # =============================================================================
 
-HYPOTHESIS_SYSTEM_PROMPT = """You are an expert ML diagnostician agent. Your task is to analyze model performance signals and identify potential failure modes.
+HYPOTHESIS_SYSTEM_PROMPT = """You are an expert ML diagnostician. You will receive a structured JSON block of mathematically computed signals from a scikit-learn model. Your job is to identify failure modes strictly based on those numbers.
 
-You will be given:
-1. Performance metrics (train score, validation score, CV scores, etc.)
-2. A list of possible failure modes to consider
+STRICT RULES — read carefully:
+1. Every claim in your evidence MUST cite a specific number from the input JSON
+2. You CANNOT diagnose anything not supported by the provided signals
+3. Confidence cap is 0.85 — never go above this
+4. If only 1 signal supports a hypothesis → confidence < 0.50, say "weakly suggests"
+5. If 2 signals agree → confidence 0.50–0.75, say "likely"
+6. If 3+ signals agree → confidence 0.75–0.85, say "strongly suggests"
+7. NEVER say "definitely", "clearly", "certainly" — always use hedged language
+8. End every evidence item with "→ worth investigating"
 
-For each failure mode you detect, you must provide:
-- failure_mode: The name of the failure mode (must be one of the provided options)
-- confidence: A score between 0.0 and 1.0 indicating how confident you are (0.95 max)
-- severity: "low", "medium", or "high"
-- evidence: A list of specific observations that support this hypothesis
-
-Guidelines:
-- Only report failure modes with confidence >= 0.25
-- Be conservative - don't over-diagnose
-- Base your assessment solely on the provided signals
-- Provide specific, quantitative evidence when possible
-- A model can have multiple failure modes simultaneously
+SIGNAL PRIORITY (use these first — they are richer than basic accuracy):
+- calibration_overconfidence_ratio, brier_score → overconfidence issues
+- learning_curve_converged, learning_curve_gap_at_full → convergence issues
+- pred_majority_class_ratio, pred_distribution_entropy → bias/collapse issues
+- threshold_sensitivity_score → fragile decision boundary
+- feature_variance_ratio, feature_drift_flags → scale/feature issues
 
 Output format (STRICT JSON - no markdown, no code blocks):
 {
   "hypotheses": [
     {
       "failure_mode": "overfitting",
-      "confidence": 0.85,
-      "severity": "high",
-      "evidence": ["Train-val gap of 25% indicates memorization", "Perfect training score (100%) with 75% validation"]
+      "confidence": 0.72,
+      "severity": "medium",
+      "evidence": [
+        "Train-val gap of 18% (train=0.97, val=0.79) likely suggests memorisation → worth investigating",
+        "Learning curve gap at full data is 15% — model may still be overfitting even with full data → worth investigating"
+      ]
     }
   ]
 }
 
-If no significant issues are detected, return:
-{"hypotheses": []}"""
+If no significant issues detected: {"hypotheses": []}"""
 
 
 RECOMMENDATION_SYSTEM_PROMPT = """You are an expert ML engineer agent helping users fix model issues.
@@ -93,9 +95,25 @@ Output format (STRICT JSON - no markdown, no code blocks):
 
 SUMMARY_SYSTEM_PROMPT = """You are an expert ML diagnostician agent helping users understand model issues.
 
-Your role is to provide a comprehensive diagnostic summary that includes:
-1. A summary of the detected issues
-2. The recommended actions to fix them
+Your role is to provide a diagnostic summary that hits a confidence sweet spot:
+- Not so confident the user blindly trusts it
+- Not so uncertain the user ignores it
+- The user should feel: "this is likely, I should investigate further"
+
+Your summary must include:
+1. A summary of detected issues with hedged language
+2. What signals support each finding
+3. Recommended next steps (framed as investigations, not commands)
+4. Any new signal findings: calibration, learning curve shape, prediction distribution,
+   threshold sensitivity, feature drift — include these if present in the evidence
+
+CRITICAL TONE RULES:
+- Use "likely", "suggests", "may indicate", "worth investigating" — not "definitely" or "clearly"
+- End every finding with "→ recommend investigating further" or similar
+- If confidence < 0.50: say "weakly suggests — low priority"
+- If confidence 0.50-0.75: say "likely — worth addressing"  
+- If confidence > 0.75: say "strongly suggests — high priority"
+- NEVER present a diagnosis as a final verdict
 
 Guidelines:
 - Be concise and direct
@@ -103,16 +121,16 @@ Guidelines:
 - Present recommendations in order of importance
 - Use markdown formatting for clarity
 - Include specific numbers and metrics from the evidence
-- For feature_redundancy, include the specific correlated feature pairs
-- For class_imbalance, include class distribution and recall disparities
-- For data_leakage, include suspicious feature correlations and CV-holdout gaps
 
 Structure your response as:
 ## Diagnosis
-[Brief summary of detected issues with evidence]
+[Brief summary of detected issues with hedged language and evidence]
 
-## Recommendations
-[Numbered list of recommendations with rationale]"""
+## What The Signals Show
+[Bullet points covering calibration, learning curve, prediction distribution, threshold sensitivity, feature drift if available]
+
+## Recommended Next Steps
+[Numbered list — framed as investigations, not commands]"""
 
 
 # =============================================================================
@@ -689,136 +707,95 @@ def generate_llm_summary(
 # =============================================================================
 
 def _build_hypothesis_prompt(signals: Dict[str, Any], task: str) -> str:
-    """Build the prompt for LLM hypothesis generation."""
-    
-    # Format signals
-    signal_lines = []
-    
-    # Key metrics
-    if signals.get("train_score") is not None:
-        signal_lines.append(f"- Training score: {signals['train_score']:.1%}")
-    if signals.get("val_score") is not None:
-        signal_lines.append(f"- Validation score: {signals['val_score']:.1%}")
-    if signals.get("train_val_gap") is not None:
-        signal_lines.append(f"- Train-validation gap: {signals['train_val_gap']:.1%}")
-    
-    # CV metrics
-    if signals.get("cv_mean") is not None:
-        signal_lines.append(f"- CV mean score: {signals['cv_mean']:.1%}")
-    if signals.get("cv_std") is not None:
-        signal_lines.append(f"- CV standard deviation: {signals['cv_std']:.1%}")
-    if signals.get("cv_range") is not None:
-        signal_lines.append(f"- CV range (max-min): {signals['cv_range']:.1%}")
-    if signals.get("cv_train_val_gap") is not None:
-        signal_lines.append(f"- CV train-test gap: {signals['cv_train_val_gap']:.1%}")
-    
-    # Data characteristics
-    if signals.get("n_samples_train") is not None:
-        signal_lines.append(f"- Training samples: {signals['n_samples_train']}")
-    if signals.get("n_features") is not None:
-        signal_lines.append(f"- Number of features: {signals['n_features']}")
-    if signals.get("feature_to_sample_ratio") is not None:
-        signal_lines.append(f"- Feature to sample ratio: {signals['feature_to_sample_ratio']:.3f}")
-    
-    # Classification-specific
+    """Build a structured JSON signal block for the LLM hypothesis agent."""
+
+    # Build a clean structured signal dict — only include what's available
+    structured = {"task": task}
+
+    # --- Core performance ---
+    for key in ["train_score", "val_score", "train_val_gap", "cv_mean", "cv_std", "cv_range", "cv_train_val_gap"]:
+        if signals.get(key) is not None:
+            structured[key] = round(float(signals[key]), 4)
+
+    # --- Data shape ---
+    for key in ["n_samples_train", "n_features", "feature_to_sample_ratio"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key]
+
+    # --- NEW: Calibration signals ---
+    for key in ["calibration_overconfidence_ratio", "calibration_underconfidence_ratio",
+                "brier_score", "calibration_note"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key] if isinstance(signals[key], str) else round(float(signals[key]), 4)
+
+    # --- NEW: Learning curve signals ---
+    for key in ["learning_curve_converged", "learning_curve_gap_at_full", "learning_curve_note"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key]
+
+    # --- NEW: Prediction distribution ---
+    for key in ["pred_distribution_entropy", "pred_majority_class_ratio", "pred_distribution_note"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key] if isinstance(signals[key], str) else round(float(signals[key]), 4)
+
+    # --- NEW: Threshold sensitivity ---
+    for key in ["threshold_sensitivity_score", "threshold_sensitivity_note"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key]
+
+    # --- NEW: Feature drift ---
+    for key in ["feature_variance_ratio", "feature_drift_flags", "feature_drift_note"]:
+        if signals.get(key) is not None:
+            structured[key] = signals[key]
+
+    # --- Classification specific ---
     if task == "classification":
-        if signals.get("minority_class_ratio") is not None:
-            signal_lines.append(f"- Minority class ratio: {signals['minority_class_ratio']:.1%}")
-        if signals.get("n_classes") is not None:
-            signal_lines.append(f"- Number of classes: {signals['n_classes']}")
-        
-        # Class distribution details
-        if signals.get("class_distribution"):
-            signal_lines.append("- Class distribution:")
-            for class_label, ratio in signals["class_distribution"].items():
-                signal_lines.append(f"    - Class {class_label}: {ratio:.1%}")
-        
-        # Per-class recall (if available)
-        if signals.get("per_class_recall"):
-            signal_lines.append("- Per-class recall:")
-            for class_label, recall in signals["per_class_recall"].items():
-                signal_lines.append(f"    - Class {class_label}: {recall:.1%}")
-        
-        # Per-class precision (if available)
-        if signals.get("per_class_precision"):
-            signal_lines.append("- Per-class precision:")
-            for class_label, precision in signals["per_class_precision"].items():
-                signal_lines.append(f"    - Class {class_label}: {precision:.1%}")
-    
-    # Regression-specific
+        for key in ["minority_class_ratio", "n_classes", "class_distribution",
+                    "per_class_recall", "per_class_precision"]:
+            if signals.get(key) is not None:
+                structured[key] = signals[key]
+
+    # --- Regression specific ---
     if task == "regression":
-        if signals.get("residual_skew") is not None:
-            signal_lines.append(f"- Residual skewness: {signals['residual_skew']:.2f}")
-        if signals.get("residual_kurtosis") is not None:
-            signal_lines.append(f"- Residual kurtosis: {signals['residual_kurtosis']:.2f}")
-    
-    # Feature correlations - include detailed pair information
-    if signals.get("high_correlation_pairs") and len(signals["high_correlation_pairs"]) > 0:
-        pairs = signals["high_correlation_pairs"]
-        n_pairs = len(pairs)
-        max_corr = pairs[0][2] if pairs else 0
-        signal_lines.append(f"- Highly correlated feature pairs: {n_pairs} (max correlation: {max_corr:.1%})")
-        
-        # Add detailed pair information (limit to top 10 to avoid prompt bloat)
-        signal_lines.append("  Correlated pairs (feature_i, feature_j, correlation):")
-        for i, (feat_i, feat_j, corr) in enumerate(pairs[:10]):
-            signal_lines.append(f"    - Feature {feat_i} ↔ Feature {feat_j}: {corr:.1%}")
-        if n_pairs > 10:
-            signal_lines.append(f"    - ... and {n_pairs - 10} more pairs")
-    
-    # Data leakage signals
+        for key in ["residual_skew", "residual_kurtosis"]:
+            if signals.get(key) is not None:
+                structured[key] = round(float(signals[key]), 4)
+
+    # --- Leakage signals ---
     if signals.get("cv_holdout_gap") is not None:
-        cv_holdout_gap = signals["cv_holdout_gap"]
-        signal_lines.append(f"- CV-to-holdout gap: {cv_holdout_gap:.1%}")
-        if cv_holdout_gap > 0.10:
-            signal_lines.append("  WARNING: CV performance significantly exceeds holdout - possible data leakage")
-    
-    # Suspicious feature-target correlations (potential target leakage)
-    if signals.get("suspicious_feature_correlations") and len(signals["suspicious_feature_correlations"]) > 0:
-        suspicious = signals["suspicious_feature_correlations"]
-        n_suspicious = len(suspicious)
-        max_corr = suspicious[0][1] if suspicious else 0
-        signal_lines.append(f"- Suspicious feature-target correlations: {n_suspicious} features (max: {abs(max_corr):.1%})")
-        signal_lines.append("  Features with unusually high correlation to target (potential leakage):")
-        for feat_idx, corr in suspicious[:5]:
-            signal_lines.append(f"    - Feature {feat_idx}: {abs(corr):.1%} correlation with target")
-        if n_suspicious > 5:
-            signal_lines.append(f"    - ... and {n_suspicious - 5} more suspicious features")
-    
-    # Define failure modes
-    failure_modes = """
-Available failure modes to consider:
-1. overfitting - Model memorizes training data, performs well on train but poorly on validation
-2. underfitting - Model is too simple, performs poorly on both train and validation
-3. high_variance - Model is unstable, performance varies significantly across data splits
-4. class_imbalance - Skewed class distribution affecting model performance (classification only)
-5. feature_redundancy - Highly correlated or duplicate features
-6. label_noise - Incorrect or noisy target labels
-7. data_leakage - Information from validation leaking into training
-"""
-    
-    prompt = f"""Analyze these model diagnostic signals and identify potential failure modes.
+        structured["cv_holdout_gap"] = round(float(signals["cv_holdout_gap"]), 4)
+    if signals.get("suspicious_feature_correlations"):
+        structured["suspicious_feature_correlations"] = signals["suspicious_feature_correlations"][:5]
 
-Task type: {task}
+    # --- Feature redundancy ---
+    if signals.get("high_correlation_pairs"):
+        pairs = signals["high_correlation_pairs"][:10]
+        structured["high_correlation_pairs"] = [
+            {"feature_i": p[0], "feature_j": p[1], "correlation": round(p[2], 4)}
+            for p in pairs
+        ]
 
-Observed Signals:
-{chr(10).join(signal_lines) if signal_lines else "- Limited signals available"}
+    failure_modes = [
+        "overfitting", "underfitting", "high_variance",
+        "class_imbalance", "feature_redundancy", "label_noise", "data_leakage"
+    ]
 
-{failure_modes}
+    prompt = f"""Analyze the following structured diagnostic signals and identify failure modes.
 
-Based on these signals, identify which failure modes are present. For each detected issue, provide:
-- The failure mode name (from the list above)
-- Confidence score (0.0 to 0.95)
-- Severity (low, medium, high)
-- Specific evidence from the signals
+DIAGNOSTIC SIGNALS (JSON):
+{json.dumps(structured, indent=2)}
 
-IMPORTANT:
-- For feature_redundancy, include the specific correlated feature pairs and their correlation values in the evidence.
-- For class_imbalance, include the class distribution and any per-class recall/precision disparities in the evidence.
-- For data_leakage, include the CV-to-holdout gap and any suspicious feature-target correlations in the evidence.
+AVAILABLE FAILURE MODES: {failure_modes}
 
-Return your analysis as JSON."""
-    
+Rules:
+- Only diagnose using numbers present in the JSON above
+- Cite specific values in every evidence item
+- Prioritise calibration, learning_curve, pred_distribution, threshold_sensitivity, feature_drift signals
+- Keep confidence <= 0.85
+- Use hedged language always
+
+Return JSON."""
+
     return prompt
 
 
@@ -866,56 +843,70 @@ def _build_summary_prompt(
     task: str
 ) -> str:
     """Build the prompt for LLM summary generation."""
-    
-    # Format signals
+
+    # Core signals
     signal_lines = []
-    if signals.get("train_score") is not None:
-        signal_lines.append(f"- Training score: {signals['train_score']:.1%}")
-    if signals.get("val_score") is not None:
-        signal_lines.append(f"- Validation score: {signals['val_score']:.1%}")
-    if signals.get("train_val_gap") is not None:
-        signal_lines.append(f"- Train-val gap: {signals['train_val_gap']:.1%}")
-    if signals.get("cv_mean") is not None:
-        signal_lines.append(f"- CV mean: {signals['cv_mean']:.1%}")
-    if signals.get("cv_std") is not None:
-        signal_lines.append(f"- CV std: {signals['cv_std']:.1%}")
-    
-    # Format hypotheses
+    for key, label in [
+        ("train_score", "Train score"),
+        ("val_score", "Val score"),
+        ("train_val_gap", "Train-val gap"),
+        ("cv_mean", "CV mean"),
+        ("cv_std", "CV std"),
+    ]:
+        if signals.get(key) is not None:
+            signal_lines.append(f"- {label}: {signals[key]:.1%}")
+
+    # New signals
+    new_signal_lines = []
+    for key in ["calibration_note", "learning_curve_note",
+                "pred_distribution_note", "threshold_sensitivity_note", "feature_drift_note"]:
+        if signals.get(key):
+            new_signal_lines.append(f"- {key.replace('_note','').replace('_',' ').title()}: {signals[key]}")
+
+    # Hypotheses
     hypothesis_lines = []
     for h in sorted(hypotheses, key=lambda x: x.confidence, reverse=True):
-        hypothesis_lines.append(f"- {h.name.value} (confidence: {h.confidence:.0%}, severity: {h.severity})")
+        label = (
+            "weakly suggests — low priority" if h.confidence < 0.50
+            else "likely — worth addressing" if h.confidence < 0.75
+            else "strongly suggests — high priority"
+        )
+        hypothesis_lines.append(f"- {h.name.value} ({h.confidence:.0%} confidence) → {label}")
         for ev in h.evidence:
-            hypothesis_lines.append(f"  - Evidence: {ev}")
-    
-    # Format recommendations
+            hypothesis_lines.append(f"  - {ev}")
+
+    # Recommendations
     rec_lines = []
     for i, rec in enumerate(recommendations, 1):
-        rec_lines.append(f"{i}. {rec.action}")
-        rec_lines.append(f"   - Rationale: {rec.rationale}")
-        if rec.related_hypothesis:
-            rec_lines.append(f"   - Addresses: {rec.related_hypothesis.value}")
-    
-    prompt = f"""Provide a comprehensive diagnostic summary for this model.
+        rec_lines.append(f"{i}. {rec.action} — {rec.rationale}")
 
-Task type: {task}
+    prompt = f"""Provide a diagnostic summary using ONLY the signals and hypotheses below.
 
-Observed Signals:
-{chr(10).join(signal_lines) if signal_lines else "- Limited signals available"}
+Task: {task}
 
-Detected Issues:
-{chr(10).join(hypothesis_lines) if hypothesis_lines else "- No significant issues detected"}
+CORE SIGNALS:
+{chr(10).join(signal_lines) if signal_lines else "- Limited signals"}
 
-Recommendations to Address Issues:
-{chr(10).join(rec_lines) if rec_lines else "- No recommendations"}
+NEW ENRICHED SIGNALS:
+{chr(10).join(new_signal_lines) if new_signal_lines else "- Not available"}
 
-Please provide a clear diagnostic report that includes:
+DETECTED ISSUES:
+{chr(10).join(hypothesis_lines) if hypothesis_lines else "- No significant issues"}
 
-1. **Diagnosis**: What is happening with this model and why
+RECOMMENDATIONS:
+{chr(10).join(rec_lines) if rec_lines else "- None"}
 
-2. **Recommendations**: Present the recommendations above in a clear, prioritized format
+Format your response as:
 
-Keep the diagnosis section concise (under 150 words). Present all recommendations clearly."""
-    
+## Diagnosis
+[2-3 sentences max. Hedged language only. Cite specific numbers.]
+
+## What The Signals Show
+[Bullet points for each enriched signal that is present — calibration, learning curve, prediction distribution, threshold sensitivity, feature drift]
+
+## Recommended Next Steps
+[Numbered list — frame as investigations not commands. End each with "→ investigate further"]"""
+
     return prompt
 
 
@@ -946,7 +937,7 @@ def _parse_hypotheses_response(response: str) -> List[Hypothesis]:
             except ValueError:
                 continue  # Skip unknown failure modes
             
-            confidence = min(0.95, max(0.0, float(h.get("confidence", 0.5))))
+            confidence = min(0.85, max(0.0, float(h.get("confidence", 0.5))))
             
             severity = h.get("severity", "medium").lower()
             if severity not in ("low", "medium", "high"):

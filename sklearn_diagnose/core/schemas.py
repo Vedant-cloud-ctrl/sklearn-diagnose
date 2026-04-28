@@ -159,6 +159,35 @@ class Signals:
     # Leakage indicators
     cv_holdout_gap: Optional[float] = None
     suspicious_feature_correlations: Optional[List[Tuple[int, float]]] = None
+
+    # --- NEW SIGNALS ---
+
+    # Calibration signal → is model overconfident?
+    calibration_overconfidence_ratio: Optional[float] = None   # % of preds with max_proba > 0.95
+    calibration_underconfidence_ratio: Optional[float] = None  # % of preds near uniform
+    brier_score: Optional[float] = None                        # 0=perfect, 0.25=random (binary)
+    calibration_note: Optional[str] = None                     # human readable flag
+
+    # Learning curve shape → did model converge?
+    learning_curve_train_scores: Optional[List[float]] = None  # train scores across sizes
+    learning_curve_val_scores: Optional[List[float]] = None    # val scores across sizes
+    learning_curve_converged: Optional[bool] = None            # did val score plateau?
+    learning_curve_gap_at_full: Optional[float] = None         # train-val gap at full data
+    learning_curve_note: Optional[str] = None
+
+    # Prediction distribution → outputs spread or clustered?
+    pred_distribution_entropy: Optional[float] = None          # entropy of predicted class distribution
+    pred_majority_class_ratio: Optional[float] = None          # how often model picks same class
+    pred_distribution_note: Optional[str] = None
+
+    # Threshold sensitivity → how fragile is the decision boundary?
+    threshold_sensitivity_score: Optional[float] = None        # % predictions that flip between 0.4-0.6
+    threshold_sensitivity_note: Optional[str] = None
+
+    # Feature drift → which features are most problematic?
+    feature_variance_ratio: Optional[float] = None             # max/min variance across features
+    feature_drift_flags: Optional[List[int]] = None            # indices of suspicious features
+    feature_drift_note: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert signals to dictionary for serialization."""
